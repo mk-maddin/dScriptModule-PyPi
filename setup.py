@@ -10,10 +10,9 @@ setuptools.setup(
     url='https://github.com/mk-maddin/dScriptModule',
     author='Martin Kraemer',
     author_email='mk.maddin@gmail.com',
-    description='Home Assistant ready python module for dScript boards (by Robot-Electronics / Devantech Ltd.) with CUSTOM app firmware'
+    description='Home Assistant ready python module for dScript boards (by Robot-Electronics / Devantech Ltd.) with CUSTOM app firmware',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

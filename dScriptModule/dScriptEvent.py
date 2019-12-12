@@ -4,18 +4,7 @@
 # description: 
 #   General event object class - https://emptypage.jp/notes/pyevent.en.html
 
-class dScriptEventObj(object):
-    event = Event()
-    
-    def __init__(self, SENDER=None, TOPIC=None, IDENTIFIER=None, VALUE=None):
-        eventobj.sender=SENDER
-        eventobj.topic=TOPIC
-        eventobj.identifier=IDENTIFIER
-        eventobj.value=VALUE
-
-    def thorw(self):
-        self.event
-    
+import logging
 
 class Event(object):
 
@@ -84,3 +73,16 @@ class EventHandler(object):
     __isub__ = remove
     __call__ = fire
 
+class dScriptEventObj(object):
+    event = Event(None)
+
+    def __init__(self, SENDER=None, TOPIC=None, IDENTIFIER=None, VALUE=None):
+        #logging.debug("dScriptEventObj: __init__")
+        self.sender=SENDER
+        self.topic=TOPIC
+        self.identifier=IDENTIFIER
+        self.value=VALUE
+
+    def throw(self):
+        #logging.debug("dScriptEventObj: throw")
+        self.event()

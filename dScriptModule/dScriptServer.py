@@ -4,19 +4,20 @@
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
 
-import dScriptObject
-import thread
+from .dScriptObject import *
+from .dScriptEvent import *
+import _thread
 import socket
 
 class dScriptServer(dScriptObject):
 
     __socket = None
-    _evt_HeartBeat = event.Event(SenderIP)
-    _evt_GetStatus = event.Event(SenderIP)
-    _evt_GetConfig = event.Event(SenderIP)
-    _evt_GetLight = event.Event(SenderIP,identifier)
-    _evt_GetShutter = event.Event(SenderIP,identifier)
-    _evt_GetSocket = event.Event(SenderIP,identifier)
+    _evt_HeartBeat = Event(SenderIP)
+    _evt_GetStatus = Event(SenderIP)
+    _evt_GetConfig = Event(SenderIP)
+    _evt_GetLight = Event(SenderIP,identifier)
+    _evt_GetShutter = Event(SenderIP,identifier)
+    _evt_GetSocket = Event(SenderIP,identifier)
 
     def __init__(self, TCP_IP='0.0.0.0', TCP_PORT=17123, PROTOCOL='binary'):
         logging.debug("dScriptServer: __init__")
@@ -29,7 +30,7 @@ class dScriptServer(dScriptObject):
         logging.debug("dScriptServer: StartServer")
         if not self.__socket == None:
             return False
-        thread.start_new_thread(self.__ServerThread,())
+        _thread.start_new_thread(self.__ServerThread,())
 
     def StopServer(self):
         logging.debug("dScriptServer: StopServer")
@@ -49,7 +50,7 @@ class dScriptServer(dScriptObject):
             while True:
                c, addr = self.__socket.accept()     # Establish connection with client.
                logging.debug("dScriptServer: Client connected: %s", addr)
-               thread.start_new_thread(self.__ClientConnected,(c,addr))
+               _thread.start_new_thread(self.__ClientConnected,(c,addr))
         except:
             pass
         logging.info("dScriptServer: Stopped - closing server")
@@ -63,15 +64,15 @@ class dScriptServer(dScriptObject):
         clientsocket.close()
         self.__InterpreteData(data,addr[0])
 
-    def __InterpreteData(data,SenderIP)
+    def __InterpreteData(data,SenderIP):
         logging.debug("dScriptServer: __InterpreteData")
         #TO-DO: identify protocol & select according action
-        if self._CMDProtocol == self._Protocols[4]: #BinaryAES
+        if self._Protocol == self._Protocols[4]: #BinaryAES
             data=self._AESDecrypt(data)
-        databytes=self.__ToDataBytes(data):
+        databytes=self.__ToDataBytes(data)
         self.__InterpreteBinary(databytes,SenderIP)
 
-    def __InterpreteBinary(databytes,SenderIP)
+    def __InterpreteBinary(databytes,SenderIP):
         if databytes[0] == '0':
             logging.debug("dScriptServer: HeartBeat: %s", SenderIP)
             self._evt_HeartBeat(SenderIP)

@@ -24,12 +24,14 @@ class dScriptServer(dScriptObject):
     def StartServer(self):
         #logging.debug("dScriptServer: StartServer")
         if not self.__socket == None:
+            raise Exception("Server already started")
             return False
         _thread.start_new_thread(self.__ServerThread,())
 
     def StopServer(self):
         #logging.debug("dScriptServer: StopServer")
         if self.__socket == None:
+            raise Exception("Server already stopped")
             return False
         self.__socket.close()
         self.__socket = None

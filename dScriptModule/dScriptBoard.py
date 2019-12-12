@@ -5,13 +5,12 @@
 #   object capturing all incoming command triggers (protocol independend) and trowing events
 
 from .dScriptObject import *
-from .dScriptEvent import *
 import struct
 import socket
 
 class dScriptBoard(object):
 
-    _HostName='Unknown'
+    _HostName=None
     
     _ModuleID='Unknown'
     _SystemFirmwareMajor=0
@@ -28,10 +27,7 @@ class dScriptBoard(object):
     _ConnectedShutters=0
     _ConnectedSockets=0
 
-    _evt_LightChanged = Event(identifier,state)
-    _evt_ShutterChanged = Event(identifier,state)
-    _evt_SocketChanged = Event(identifier,state)
-    _evt_StatusChanged = Event()
+    _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[] }
 
     '''Initialize the dScriptBoard element with at least its IP and port to be able to connect later'''
     def __init__(self, TCP_IP, TCP_PORT=17123):
@@ -122,7 +118,7 @@ class dScriptBoard(object):
         self._ApplicationFirmwareMinor=databytes[4]
         self._Volts=float(databytes[5])/10.00
         self._Temperature=int(databits[(6*8):(8*8)],2)
-        #self._evt_StatusChanged()
+        self._throwEvent(self._HostName, 'status')
 
     '''Execute the GC, GetConfig command on the board and write its results as attributes'''
     def GetConfig(self):
@@ -139,7 +135,7 @@ class dScriptBoard(object):
         self._ConnectedLights=databytes[5]
         self._ConnectedShutters=databytes[6]
         self._ConnectedSockets=databytes[7]
-        #self._evt_StatusChanged()
+        self._throwEvent(self._HostName, 'config')
 
     '''Execute the GL, GetLight command and print the result into log'''
     def GetLight(self,identifier):
@@ -149,7 +145,7 @@ class dScriptBoard(object):
         data=self.__SendProtocol('GetLight',[identifier])
         databytes=self.__ToDataBytes(data)
         logging.info("dScriptBoard: %s: Light %s is %s", self._HostName, identifier, self._OnOffState[databytes[0]])
-        self._evt_LightChanged(identifier,self._OnOffState[databytes[0]])
+        self._throwEvent(self._HostName, 'light', identifier, self._OnOffState[databytes[0]])
 
     '''Execute the GH, GetShutter command and print the result into log'''
     def GetShutter(self,identifier):
@@ -159,7 +155,7 @@ class dScriptBoard(object):
         data=self.__SendProtocol('GetShutter',[identifier])
         databytes=self.__ToDataBytes(data)
         logging.info("dScriptBoard: %s: Shutter %s is %s at level %s%%", self._HostName, identifier, self._ShutterStates[databytes[1]], databytes[0])
-        self._evt_ShutterChanged(identifier,self._OnOffState[databytes[0]])
+        self._throwEvent(self._HostName, 'shutter', identifier, databytes[0])
 
     '''Execute the GC, GetSocket command and print the result into log'''
     def GetSocket(self,identifier):
@@ -169,7 +165,7 @@ class dScriptBoard(object):
         data=self.__SendProtocol('GetLight',identifier)
         databytes=self.__ToDataBytes(data)
         logging.info("dScriptBoard: %s: Socket %s is %s", self._HostName, identifier, self._OnOffState[databytes[0]])
-        self._evt_SocketChanged(identifier,self._OnOffState[databytes[0]])
+        self._throwEvent(self._HostName, 'socket', identifier, self._OnOffState[databytes[0]])
 
     '''Execute the SL, SetLight command to define a light status'''
     def SetLight(self,identifier,state):

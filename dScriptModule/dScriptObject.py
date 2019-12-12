@@ -6,11 +6,14 @@
 #   into the different protocols available by these boards
 
 import logging
+from .dScriptEvent import *
 
 class dScriptObject(object):
 
     IP = '127.0.0.1'
     Port = 17123
+
+    _EventHandlers = { 'topic':[]}
 
     _Protocols = {'1:':'modbus', '2':'ascii', '3':'binary', '4':'binaryaes'}
     _DecimalCommands = {'48':'GetStatus', '49':'SetRelay', '50':'SetOutput', '51':'GetRelay', '52':'GetInput', '53':'GetAnalogue', '54':'GetCounter', 
@@ -65,6 +68,36 @@ class dScriptObject(object):
         databits = ''.join(format(ord(byte), '08b') for byte in data)
         logging.debug("dScriptObject: received databits: %s", databits)
         return databits
+
+    def addEventHandler(self, topic, handler):
+        logging.debug("dScriptObject: addEventHandler")
+        topic=topic.lower()
+        if not self._IsInList(topic,self._EventHandlers.keys()):
+            raise Exception("Unknown event handler topic: %s", topic)
+            return False
+        self._EventHandlers[topic].append(handler) 
+        return True
+
+    def removeEventHandler(self, topic, handler):
+        logging.debug("dScriptObject: removeEventHandler")
+        topic=topic.lower()
+        if not self._IsInList(topic,self._EventHandlers.keys()):
+            raise Exception("Unknown event handler topic: %s", topic)
+            return False
+        self._EventHandlers[topic].remove(handler)
+        return True
+
+    def _throwEvent(self, sender=self.IP, topic='topic', identifier=None, value=None):
+        logging.debug("dScriptObject: _throwEvent: %s", topic)
+        topic=topic.lower()
+        if not self._IsInList(topic,self._EventHandlers.keys()):
+            raise Exception("Unknown event handler topic: %s", topic)
+            return False
+        
+        eventobj=dScriptEventObj(sender,topic,identifier,value)
+        for handler in self._EventHandlers[topic]:
+            eventobj.event += handler
+        eventobj.throw()
 
     '''Print the status of this dScriptObject'''
     def PrintInfo(self):

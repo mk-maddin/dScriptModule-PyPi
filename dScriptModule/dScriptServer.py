@@ -5,19 +5,14 @@
 #   object capturing all incoming command triggers (protocol independend) and trowing events
 
 from .dScriptObject import *
-from .dScriptEvent import *
 import _thread
 import socket
 
 class dScriptServer(dScriptObject):
 
     __socket = None
-    _evt_HeartBeat = Event(SenderIP)
-    _evt_GetStatus = Event(SenderIP)
-    _evt_GetConfig = Event(SenderIP)
-    _evt_GetLight = Event(SenderIP,identifier)
-    _evt_GetShutter = Event(SenderIP,identifier)
-    _evt_GetSocket = Event(SenderIP,identifier)
+
+    _EventHandlers = { 'heartbeat':[], 'getstatus':[], 'getrelay':[], 'getinput':[], 'getanalogue':[], 'getcounter':[], 'getconfig':[], 'getlight':[], 'getshutter':[], 'getsocket':[] }
 
     def __init__(self, TCP_IP='0.0.0.0', TCP_PORT=17123, PROTOCOL='binary'):
         logging.debug("dScriptServer: __init__")
@@ -73,33 +68,14 @@ class dScriptServer(dScriptObject):
         self.__InterpreteBinary(databytes,SenderIP)
 
     def __InterpreteBinary(databytes,SenderIP):
-        if databytes[0] == '0':
-            logging.debug("dScriptServer: HeartBeat: %s", SenderIP)
-            self._evt_HeartBeat(SenderIP)
-        elif databytes[0] == '48': # '\x30':
-            logging.debug("dScriptServer: GetStatus: %s", SenderIP)
-            self._evt_GetStatus(SenderIP)
-        #elif databytes[0] == '51': # '\x33':
-        #    logging.debug("dScriptServer: GetRelay")   # TO-DO: implement
-        #elif databytes[0] == '52': # '\x34':
-        #    logging.debug("dScriptServer: GetInput")   # TO-DO: implement
-        #elif databytes[0] == '53': # '\x35':
-        #    logging.debug("dScriptServer: GetAnalogue")# TO-DO: implement
-        #elif databytes[0] == '54': # '\x36':
-        #    logging.debug("dScriptServer: GetCounter") # TO-DO: implement
-        elif databytes[0] == '80': # '\x50':
-            logging.debug("dScriptServer: GetConfig: %s", SenderIP)
-            self._evt_GetConfig(SenderIP)
-        elif databytes[0] == '81': # '\x51':
-            logging.debug("dScriptServer: GetLight: %s", SenderIP)
-            self._evt_GetLight(SenderIP,int(databytes[1]))
-        elif databytes[0] == '82': # '\x52':
-            logging.debug("dScriptServer: GetShutter: %s", SenderIP)
-            self._evt_GetShutter(SenderIP,int(databytes[1]))
-        elif databytes[0] == '83': # '\x53':
-            logging.debug("dScriptServer: GetSocket: %s", SenderIP)
-            self._evt_GetSocket(SenderIP,int(databytes[1]))
-        else:
+        if not self._IsInList(databyte[0],self._DecimalCommands.keys()):
             raise Exception("Unkown command: %s", databytes[0])
             return False
+        cmd=self._DecimalCommands[databytes[0]].lower()
+        
+        if cmd == 'heartbeat' or cmd == 'getstatus' or cmd == 'getconfig': #all of these do not need an identifier
+            self._throwEvent(SenderIP, cmd)
+        else
+            self._throwEvent(SenderIP, cmd, int(databytes[1]))
+        return True
 

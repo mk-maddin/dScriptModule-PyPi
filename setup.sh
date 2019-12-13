@@ -6,7 +6,10 @@
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
 
-echo "I: setup module ${module} from ${scriptDir}"
-sudo pip3 install "${module}" --no-index --find-links "file://${scriptDir}"
+echo "I: setup dependency (online)"
+sudo pip3 install bitstring
+
+echo "I: setup module ${module} from ${scriptDir} (offline)"
+sudo pip3 -v install "${module}" --no-index --find-links "file://${scriptDir}"
 
 echo "I: setup complete"

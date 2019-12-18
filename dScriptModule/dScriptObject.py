@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.08.09
+# version: 2019.12.13
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object being able to translate dScript (by robot-electronics / devantech ltd.) board commands
@@ -29,7 +29,7 @@ class dScriptObject(object):
 
     _BinaryReturnByteCounts = {'GetStatus':8, 'SetRelay':1, 'SetOutput':1, 'GetRelay':5, 'GetInput':2, 'GetAnalogue':16, 'GetCounter':8, 
             'SetLight':1, 'SetShutter':1, 'SetSocket':1,
-            'GetConfig':8, 'GetLight':1, 'GetShutter':2, 'GetSocket':1}
+            'GetConfig':10, 'GetLight':1, 'GetShutter':2, 'GetSocket':1}
 
     _Modules = {30:'dS3484', 31:'dS1242', 34:'dS2824', 35:'dS378'}
     _OnOffStates = {0:'off', 1:'on', 2:'trigger'}
@@ -124,7 +124,7 @@ class dScriptObject(object):
     def SetAESKey(self, KEY):
         #logging.debug("dScriptObject: SetAESKey")
         if not len(KEY) == self.__AESKeyLenght:
-            raise Exception("AES key must be exact %s characters long", self.__AESKeyLenght)
+            raise Exception("AES key must be exactly %s characters long", self.__AESKeyLenght)
             return False
         self._AESKey = KEY
         return True

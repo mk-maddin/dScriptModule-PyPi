@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.08.09
+# version: 2019.12.13
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -7,6 +7,7 @@
 from .dScriptObject import *
 import _thread
 import socket
+import time
 
 class dScriptServer(dScriptObject):
 
@@ -33,14 +34,27 @@ class dScriptServer(dScriptObject):
         if self.__socket == None:
             raise Exception("Server already stopped")
             return False
-        self.__socket.close()
-        self.__socket = None
+        self.__socket.shutdown(socket.SHUT_RDWR)
+        #self.__socket.close()
+        #self.__socket = None
 
     def __ServerThread(self):
         #logging.debug("dScriptServer: __ServerThread")
-        self.__socket = socket.socket()         # Create a socket object
+        stopped=True
+        failedc=0
+        while stopped and failedc < 5:
+            try:
+                self.__socket = socket.socket()         # Create a socket object
+                stopped=False
+            except: 
+                faliedc+=1
+                logging.info("dScriptServer: Warning startup failed %s times...", failedc)
+                time.sleep(5)
+        if failedc >= 5:
+            return False
         self.__socket.bind((self.IP, self.Port))
         self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #self.__socket.settimeout(self.ConnectionTimeout)
         self.__socket.listen(5)                 # Now wait for client connection.
         logging.info("dScriptServer: Started - waiting for clients...")
         try:
@@ -51,6 +65,7 @@ class dScriptServer(dScriptObject):
         except:
             pass
         logging.info("dScriptServer: Stopped - closing server")
+        #self.__socket.shutdown(socket.SHUT_RDWR)
         self.__socket.close()
         self.__socket = None
 
@@ -58,6 +73,7 @@ class dScriptServer(dScriptObject):
         #logging.debug("dScriptServer: __ClientConnected")
         data = clientsocket.recv(2) # received byte size is always 2 bytes from dScriptServerUpdate
         #logging.debug("dScriptServer: Close connection: %s", addr)
+        #clientsocket.shutdown(socket.SHUT_RDWR)
         clientsocket.close()
         self.__InterpreteData(data,addr[0])
 

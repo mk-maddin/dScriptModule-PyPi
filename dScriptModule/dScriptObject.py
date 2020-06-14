@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.12.13
+# version: 2020.05.30
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object being able to translate dScript (by robot-electronics / devantech ltd.) board commands
@@ -19,13 +19,16 @@ class dScriptObject(object):
     _Protocols = {1:'modbus', 2:'ascii', 3:'binary', 4:'binaryaes'}
     _DecimalCommands = {48:'GetStatus', 49:'SetRelay', 50:'SetOutput', 51:'GetRelay', 52:'GetInput', 53:'GetAnalogue', 54:'GetCounter', 
             64:'SetLight', 65:'SetShutter', 66:'SetSocket',
-            80:'GetConfig', 81:'GetLight', 82:'GetShutter', 83:'GetSocket', 0:'HeartBeat'}
+            80:'GetConfig', 81:'GetLight', 82:'GetShutter', 83:'GetSocket', 0:'HeartBeat', 255:'TestOnline'}
     _BinaryCommands = {'\x30':'GetStatus', '\x31':'SetRelay', '\x32':'SetOutput', '\x33':'GetRelay', '\x34':'GetInput', '\x35':'GetAnalogue', '\x36':'GetCounter', 
             '\x40':'SetLight', '\x41':'SetShutter', '\x42':'SetSocket',
-            '\x50':'GetConfig', '\x51':'GetLight', '\x52':'GetShutter', '\x53':'GetSocket'}
+            '\x50':'GetConfig', '\x51':'GetLight', '\x52':'GetShutter', '\x53':'GetSocket', '\x00':'HeartBeat','\xff':'TestOnline'}
     _ASCIICommands = {'GS':'GetStatus', 'SR':'SetRelay', 'SO':'SetOutput', 'GR':'GetRelay', 'GI':'GetInput', 'GA':'GetAnalogue', 'GC':'GetCounter', 
             'SL':'SetLight', 'SH':'SetShutter', 'SC':'SetSocket',
-            'GO':'GetConfig', 'GL':'GetLight', 'GH':'GetShutter', 'GK':'GetSocket'}
+            'GO':'GetConfig', 'GL':'GetLight', 'GH':'GetShutter', 'GK':'GetSocket', 'HB':'HeartBeat', 'TO':'TestOnline' }
+
+    _AESNonceInitCMD = 48 # decimal code of the GetStatus command which sends an inital Nonce without requiring one
+    _AESNonceCommands = [ 48, 49, 50, 64, 65, 66 ] # commands which require 
 
     _BinaryReturnByteCounts = {'GetStatus':8, 'SetRelay':1, 'SetOutput':1, 'GetRelay':5, 'GetInput':2, 'GetAnalogue':16, 'GetCounter':8, 
             'SetLight':1, 'SetShutter':1, 'SetSocket':1,
@@ -36,7 +39,7 @@ class dScriptObject(object):
     _ShutterStates = {0:'stopped', 1:'opening', 2:'closing'}
 
     _Protocol = 'binary'
-    _AESKey = ''
+    _AESKey = 'This MUST be 32 characters long.'
     __AESKeyLenght = 32
     _Nonce = ''
 

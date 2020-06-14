@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.12.13
+# version: 2019.12.24
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -7,6 +7,8 @@
 from .dScriptObject import *
 import struct
 import socket
+from Crypto import Random
+from Crypto.Cipher import AES
 
 class dScriptBoard(dScriptObject):
 
@@ -47,16 +49,59 @@ class dScriptBoard(dScriptObject):
             for a in arguments:
                 msg = msg + struct.pack("B",a)
             msg=self._AESEncrypt(msg)
-            buff=16  #BinaryAES commands are always 16 bytes
+            data=self.__Send(msg,32) #BinaryAES commands return always 16 bytes
+            data=self._AESDecrypt(data,self._GetKeyByValue(command,self._DecimalCommands))
+            return data[:self._BinaryReturnByteCounts[command]] # return only the number of bytes usually returend by Binary protocol
         elif self._Protocol == self._Protocols[3]:    #Binary
             msg=struct.pack("B",self._GetKeyByValue(command,self._DecimalCommands))
             for a in arguments:
                 msg = msg + struct.pack("B",a)
-            buff=self._BinaryReturnByteCounts[command]
+            return self.__Send(msg,self._BinaryReturnByteCounts[command])
         else:
             raise Exception("Protocol not implemented yet: %s", self._Protocol)
             return False
-        return self.__Send(msg,buff)
+
+    '''Encrypt a message using AES encryption'''
+    def _AESEncrypt(self,msg):
+        #logging.debug("dScriptBoard: _AESEncrypt: %s", msg)
+        #logging.debug("dScriptBoard: extend msg to 12 Bytes: %s", msg)
+        while len(msg) < 12:
+            msg = msg + struct.pack("B",0)
+        #logging.debug("dScriptBoard: msg extended: %s", msg)
+        if msg[0] == self._AESNonceInitCMD:
+            #logging.debug("dScriptBoard: %s: Initialize Nonce command", self._HostName)
+            msg = msg + struct.pack("B",0) + struct.pack("B",0) + struct.pack("B",0) + struct.pack("B",0) # just add 0 for initalize
+            self._Nonce = '' # reset nonce to prevent duplicate usage
+        elif self._IsInList(msg[0], self._AESNonceCommands):
+            #logging.debug("dScriptBoard: %s: Command requiring Nonce", self._HostName)
+            if not self._Nonce:
+                logging.info("dScriptBoard: %s: Need to (re)initial Nonce value", self._HostName)
+                self.GetStatus()
+            if not self._Nonce:
+                logging.error("dScriptBoard: %s: Could not receive Nonce", self._HostName)
+                return False
+            msg = msg + self._Nonce
+            self._Nonce = '' # reset nonce to prevent duplicate usage
+        else:
+            #logging.debug("dScriptBoard: %s: Command not using Nonce", self._HostName)
+            msg = msg + struct.pack("B",0) + struct.pack("B",0) + struct.pack("B",0) + struct.pack("B",0) # just add 0 for unneeded
+        #logging.debug("dScriptBoard: msg to encrypt: %s", msg)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self._AESKey, AES.MODE_CBC, iv)
+        msg = iv + cipher.encrypt(msg)
+        #logging.debug("dScriptBoard: msg encrypted: %s", msg)
+        return msg 
+
+    '''Decrypt a message using AES encryption'''
+    def _AESDecrypt(self,data,binaryid):
+        #logging.debug("dScriptBoard: _AESDecrypt: %s", data)
+        cipher = AES.new(self._AESKey, AES.MODE_CBC, data[:AES.block_size])
+        data = cipher.decrypt(data[AES.block_size:])
+        if self._IsInList(binaryid, self._AESNonceCommands):
+            logging.debug("dScriptBoard: %s: Update Nonce value: %s", self._HostName, data[12:])
+            self._Nonce = data[12:]
+        #logging.debug("dScriptBoard: data decrypted: %s", data)
+        return data
 
     '''Send a message to the board''' 
     def __Send(self,msg,buff):
@@ -90,7 +135,7 @@ class dScriptBoard(dScriptObject):
                 identifier2=self._VirtualRelays
         else:
             identifier2=0
-        if identifier <= 0 or identifier  > self._ConnectedLights:
+        if identifier <= 0 or identifier > identifier2:
             raise Exception("Maximum connected %s is: %s",idtype, identifier2)
             return False
         return True
@@ -141,6 +186,8 @@ class dScriptBoard(dScriptObject):
         try:
             data=self.__SendProtocol('GetConfig',[])
         except:
+            data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # on BinaryAES all data returned is 0 (so emulate bad return here)
+        if data[0] == 0: # data[0] is # of physical arrays - this should never be 0
             logging.info("dScriptBoard: %s: Contains default firmware", self._HostName)
             self._CustomFirmeware=False
             return False

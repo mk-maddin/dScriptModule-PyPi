@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.12.13
+# version: 2020.05.30
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -13,7 +13,7 @@ class dScriptServer(dScriptObject):
 
     __socket = None
 
-    _EventHandlers = { 'heartbeat':[], 'getstatus':[], 'getrelay':[], 'getinput':[], 'getanalogue':[], 'getcounter':[], 'getconfig':[], 'getlight':[], 'getshutter':[], 'getsocket':[] }
+    _EventHandlers = { 'heartbeat':[], 'getstatus':[], 'getrelay':[], 'getinput':[], 'getanalogue':[], 'getcounter':[], 'getconfig':[], 'getlight':[], 'getshutter':[], 'getsocket':[], 'testonline':[] }
 
     def __init__(self, TCP_IP='0.0.0.0', TCP_PORT=17123, PROTOCOL='binary'):
         #logging.debug("dScriptServer: __init__")
@@ -80,8 +80,8 @@ class dScriptServer(dScriptObject):
     def __InterpreteData(self,data,SenderIP):
         #logging.debug("dScriptServer: __InterpreteData")
         #TO-DO: identify protocol & select according action
-        if self._Protocol == self._Protocols[4]: #BinaryAES
-            data=self._AESDecrypt(data)
+        #if self._Protocol == self._Protocols[4]: #BinaryAES
+        #    data=self._AESDecrypt(data)
         databytes=self._ToDataBytes(data)
         self.__InterpreteBinary(databytes,SenderIP)
 
@@ -91,7 +91,7 @@ class dScriptServer(dScriptObject):
             return False
         cmd=self._DecimalCommands[databytes[0]].lower()
         
-        if cmd == 'heartbeat' or cmd == 'getstatus' or cmd == 'getconfig': #all of these do not need an identifier
+        if cmd == 'heartbeat' or cmd == 'getstatus' or cmd == 'getconfig' or cmd == 'testonline': #all of these do not need an identifier
             self._throwEvent(SenderIP, cmd)
         else:
             self._throwEvent(SenderIP, cmd, int(databytes[1]))

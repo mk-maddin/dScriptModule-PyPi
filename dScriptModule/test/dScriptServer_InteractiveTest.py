@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# version: 2018.10.05
+# version: 2020.05.30
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: script to test the dScriptServer and corresponding classes
 
@@ -38,6 +38,7 @@ def main():
     server.addEventHandler('getlight',handler)
     server.addEventHandler('getshutter',handler)
     server.addEventHandler('getsocket',handler)
+    server.addEventHandler('testonline',handler)
 
     try:
         while True:

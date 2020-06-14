@@ -5,13 +5,13 @@
 
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
-version='1.5' #this has to match setup.py version
 
-echo "I: uninstall from local machine: ${module}"
-if [ "${UID}" -ne 0 ];then
-	cd "${scriptDir}" && sudo pip3 uninstall -y dist/${module}-*-py3-none-any.whl
-else
-	cd "${scriptDir}" && pip3 uninstall -y dist/${module}-*-py3-none-any.whl
-fi
+if [ ! -e  "${scriptDir}/install.sh" ];then
+	echo "error: cannot find install script: ${scriptDir}/install.sh"
+	exit 2;fi
+source "${scriptDir}/install.sh"
+
+echo "I: execute test"
+sudo python3 "${scriptDir}/${module}/test/dScriptServer_InteractiveTest.py"
 
 echo "I: script complete"

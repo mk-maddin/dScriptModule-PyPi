@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2019.12.13
+# version: 2020.06.14
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   General event object class - https://emptypage.jp/notes/pyevent.en.html

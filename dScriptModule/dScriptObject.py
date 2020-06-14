@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2020.05.30
+# version: 2020.06.14
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object being able to translate dScript (by robot-electronics / devantech ltd.) board commands

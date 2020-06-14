@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# version: 2019.12.24
+# version: 2020.06.14
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: setup the current module from local system using pip
 

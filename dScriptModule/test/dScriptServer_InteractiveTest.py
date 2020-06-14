@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# version: 2020.05.30
+# version: 2020.06.14
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: script to test the dScriptServer and corresponding classes
 

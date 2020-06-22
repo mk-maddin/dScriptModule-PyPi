@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2020.06.14
+# version: 2020.06.22
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -13,7 +13,7 @@ class dScriptServer(dScriptObject):
 
     __socket = None
 
-    _EventHandlers = { 'heartbeat':[], 'getstatus':[], 'getrelay':[], 'getinput':[], 'getanalogue':[], 'getcounter':[], 'getconfig':[], 'getlight':[], 'getshutter':[], 'getsocket':[], 'testonline':[] }
+    _EventHandlers = { 'heartbeat':[], 'getstatus':[], 'getrelay':[], 'getinput':[], 'getanalogue':[], 'getcounter':[], 'getconfig':[], 'getlight':[], 'getshutter':[], 'getsocket':[], 'getmotion':[], 'testonline':[] }
 
     def __init__(self, TCP_IP='0.0.0.0', TCP_PORT=17123, PROTOCOL='binary'):
         #logging.debug("dScriptServer: __init__")

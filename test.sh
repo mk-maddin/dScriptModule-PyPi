@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# version: 2020.06.14
+# version: 2020.06.22
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: setup the current module from local system using pip
 
@@ -12,6 +12,7 @@ if [ ! -e  "${scriptDir}/install.sh" ];then
 source "${scriptDir}/install.sh"
 
 echo "I: execute test"
-sudo python3 "${scriptDir}/${module}/test/dScriptServer_InteractiveTest.py"
+#sudo python3 "${scriptDir}/${module}/test/dScriptServer_InteractiveTest.py"
+sudo python3 "${scriptDir}/${module}/test/dScriptBoard_InteractiveTest_Binary.py"
 
 echo "I: script complete"

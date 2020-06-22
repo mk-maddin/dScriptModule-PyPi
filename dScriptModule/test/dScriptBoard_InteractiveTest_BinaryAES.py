@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# version: 2020.06.14
+# version: 2020.06.22
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: script to test the dScriptServer and corresponding classes
 
@@ -18,6 +18,7 @@ def main():
 
     logging.info("main: initialize dSBoard")
     dSBoard.InitBoard()
+    time.sleep(1)
 
     ## Done during InitBoard()
     #logging.info("main: execute main GetXxxx functions")

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2020.06.14
+# version: 2020.06.22
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -28,10 +28,11 @@ class dScriptBoard(dScriptObject):
     _ConnectedLights=0
     _ConnectedShutters=0
     _ConnectedSockets=0
+    _ConnectedMotionSensors=0
     _MACAddress='00:00:00:00:00:00'
     _VirtualRelays=32 #this is always 32
 
-    _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[] }
+    _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[], 'motion':[] }
 
     '''Initialize the dScriptBoard element with at least its IP and port to be able to connect later'''
     def __init__(self, TCP_IP, TCP_PORT=17123, PROTOCOL='binary'):
@@ -133,6 +134,8 @@ class dScriptBoard(dScriptObject):
                 identifier2=self._PhysicalRelays
             else:
                 identifier2=self._VirtualRelays
+        elif idtype =='motion':
+                identifier2=self._ConnectedMotionSensors
         else:
             identifier2=0
         if identifier <= 0 or identifier > identifier2:
@@ -186,7 +189,7 @@ class dScriptBoard(dScriptObject):
         try:
             data=self.__SendProtocol('GetConfig',[])
         except:
-            data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # on BinaryAES all data returned is 0 (so emulate bad return here)
+            data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # on BinaryAES all data returned is 0 (so emulate bad return here)
         if data[0] == 0: # data[0] is # of physical arrays - this should never be 0
             logging.info("dScriptBoard: %s: Contains default firmware", self._HostName)
             self._CustomFirmeware=False
@@ -196,17 +199,18 @@ class dScriptBoard(dScriptObject):
         databits=self._ToDataBits(data)
 
         logging.info("dScriptBoard: %s: Update board config information", self._HostName)
-        self._PhysicalRelays=databytes[0]
-        self._ConnectedLights=databytes[1]
-        self._ConnectedShutters=databytes[2]
-        self._ConnectedSockets=databytes[3]
+        databytes[0]=str(hex(databytes[0]).split('x')[-1])
+        databytes[1]=str(hex(databytes[1]).split('x')[-1])
+        databytes[2]=str(hex(databytes[2]).split('x')[-1])
+        databytes[3]=str(hex(databytes[3]).split('x')[-1])
         databytes[4]=str(hex(databytes[4]).split('x')[-1])
         databytes[5]=str(hex(databytes[5]).split('x')[-1])
-        databytes[6]=str(hex(databytes[6]).split('x')[-1])
-        databytes[7]=str(hex(databytes[7]).split('x')[-1])
-        databytes[8]=str(hex(databytes[8]).split('x')[-1])
-        databytes[9]=str(hex(databytes[9]).split('x')[-1])
-        self._MACAddress=databytes[4]+':'+databytes[5]+':'+databytes[6]+':'+databytes[7]+':'+databytes[8]+':'+databytes[9]
+        self._MACAddress=databytes[0]+':'+databytes[1]+':'+databytes[2]+':'+databytes[3]+':'+databytes[4]+':'+databytes[5]
+        self._PhysicalRelays=databytes[6]
+        self._ConnectedLights=databytes[7]
+        self._ConnectedShutters=databytes[8]
+        self._ConnectedSockets=databytes[9]
+        self._ConnectedMotionSensors=databytes[10]
         self._throwEvent(self._HostName, 'config')
 
     #'''Execute the GR, GetRelay command and print the result into log'''
@@ -258,6 +262,19 @@ class dScriptBoard(dScriptObject):
         databytes=self._ToDataBytes(data)
         logging.info("dScriptBoard: %s: Socket %s is %s", self._HostName, identifier, self._OnOffStates[databytes[0]])
         self._throwEvent(self._HostName, 'socket', identifier, self._OnOffStates[databytes[0]])
+        return self._OnOffStates[databytes[0]]
+    
+    '''Execute the GM, GetMotion command and print the result into log'''
+    def GetMotion(self,identifier):
+        logging.debug("dScriptBoard: GetMotion: %s",[identifier])
+        if not self._CustomFirmeware:
+            return False
+        if not self.__CheckIdentifier(identifier,'motion'):
+            return False
+        data=self.__SendProtocol('GetMotion',[identifier])
+        databytes=self._ToDataBytes(data)
+        logging.info("dScriptBoard: %s: Motion Sensor %s is %s", self._HostName, identifier, self._OnOffStates[databytes[0]])
+        self._throwEvent(self._HostName, 'motion', identifier, self._OnOffStates[databytes[0]])
         return self._OnOffStates[databytes[0]]
 
     '''Execute the SR, SetRelay command to define a relay status'''

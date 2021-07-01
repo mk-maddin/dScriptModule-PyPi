@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2020.06.22
+# version: 2021.06.09
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object being able to translate dScript (by robot-electronics / devantech ltd.) board commands
@@ -19,20 +19,20 @@ class dScriptObject(object):
     _Protocols = {1:'modbus', 2:'ascii', 3:'binary', 4:'binaryaes'}
     _DecimalCommands = {48:'GetStatus', 49:'SetRelay', 50:'SetOutput', 51:'GetRelay', 52:'GetInput', 53:'GetAnalogue', 54:'GetCounter', 
             64:'SetLight', 65:'SetShutter', 66:'SetSocket',
-            80:'GetConfig', 81:'GetLight', 82:'GetShutter', 83:'GetSocket', 84:'GetMotion', 0:'HeartBeat', 255:'TestOnline'}
+            80:'GetConfig', 81:'GetLight', 82:'GetShutter', 83:'GetSocket', 84:'GetMotion', 85:'GetButton', 0:'HeartBeat', 255:'TestOnline'}
     _BinaryCommands = {'\x30':'GetStatus', '\x31':'SetRelay', '\x32':'SetOutput', '\x33':'GetRelay', '\x34':'GetInput', '\x35':'GetAnalogue', '\x36':'GetCounter', 
             '\x40':'SetLight', '\x41':'SetShutter', '\x42':'SetSocket',
-            '\x50':'GetConfig', '\x51':'GetLight', '\x52':'GetShutter', '\x53':'GetSocket', '\x54':'GetMotion', '\x00':'HeartBeat','\xff':'TestOnline'}
+            '\x50':'GetConfig', '\x51':'GetLight', '\x52':'GetShutter', '\x53':'GetSocket', '\x54':'GetMotion', '\x55':'GetButton', '\x00':'HeartBeat','\xff':'TestOnline'}
     _ASCIICommands = {'GS':'GetStatus', 'SR':'SetRelay', 'SO':'SetOutput', 'GR':'GetRelay', 'GI':'GetInput', 'GA':'GetAnalogue', 'GC':'GetCounter', 
             'SL':'SetLight', 'SH':'SetShutter', 'SC':'SetSocket',
-            'GO':'GetConfig', 'GL':'GetLight', 'GH':'GetShutter', 'GK':'GetSocket', 'GM':'GetMotion', 'HB':'HeartBeat', 'TO':'TestOnline' }
+            'GO':'GetConfig', 'GL':'GetLight', 'GH':'GetShutter', 'GK':'GetSocket', 'GM':'GetMotion', 'GB':'GetButton', 'HB':'HeartBeat', 'TO':'TestOnline' }
 
     _AESNonceInitCMD = 48 # decimal code of the GetStatus command which sends an inital Nonce without requiring one
     _AESNonceCommands = [ 48, 49, 50, 64, 65, 66 ] # commands which require AES Nonce
 
     _BinaryReturnByteCounts = {'GetStatus':8, 'SetRelay':1, 'SetOutput':1, 'GetRelay':5, 'GetInput':2, 'GetAnalogue':16, 'GetCounter':8, 
             'SetLight':1, 'SetShutter':1, 'SetSocket':1,
-            'GetConfig':11, 'GetLight':1, 'GetShutter':2, 'GetSocket':1, 'GetMotion':1}
+            'GetConfig':12, 'GetLight':1, 'GetShutter':2, 'GetSocket':1, 'GetMotion':1, 'GetButton':1}
 
     _Modules = {30:'dS3484', 31:'dS1242', 34:'dS2824', 35:'dS378'}
     _OnOffStates = {0:'off', 1:'on', 2:'trigger'}

@@ -4,7 +4,10 @@
 # description: setup the current module from local system using pip
 
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+#module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+module='dScriptModule'
+
+pip3 install bitstring
 
 echo "I: compile package ${module}"
 cd "${scriptDir}" && python3 setup.py bdist_wheel

@@ -21,6 +21,10 @@ def main():
     dSBoard.InitBoard()
     time.sleep(1)
 
+    ## Print all board attributes
+    #for att in dir(dSBoard):
+    #    logging.debug("DEBUG: dSBoard.%s = %s",att, getattr(dSBoard,att))
+
     ## Done during InitBoard()
     #logging.info("main: execute main GetXxxx functions")
     #dSBoard.GetStatus()
@@ -75,14 +79,22 @@ def main():
 #            dSBoard.SetSocket(i,'off')
 #            time.sleep(2)
 
-        logging.info("main: execute %s GetMotion functions", dSBoard._ConnectedMotionSensors)
+#        logging.info("main: execute %s GetMotion functions", dSBoard._ConnectedMotionSensors)
+#        i=0
+#        while i < dSBoard._ConnectedMotionSensors:
+#            i += 1
+#            dSBoard.GetMotion(i)
+#            time.sleep(5)
+#            dSBoard.GetMotion(i)
+#            time.sleep(1)
+
+
+        logging.info("main: execute %s GetButton functions", dSBoard._ConnectedButtons)
         i=0
-        while i < dSBoard._ConnectedMotionSensors:
+        while i < dSBoard._ConnectedButtons:
             i += 1
-            dSBoard.GetMotion(i)
-            time.sleep(5)
-            dSBoard.GetMotion(i)
-            time.sleep(1)
+            dSBoard.GetButton(i)
+            time.sleep(2)
 
     logging.debug("main: exit now - BYE BYE")
     sys.exit()

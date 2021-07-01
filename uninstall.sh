@@ -4,7 +4,8 @@
 # description: setup the current module from local system using pip
 
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+#module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+module='dScriptModule'
 version='1.5' #this has to match setup.py version
 
 echo "I: uninstall from local machine: ${module}"

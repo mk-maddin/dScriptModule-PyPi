@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2020.06.22
+# version: 2021.06.30
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -29,10 +29,11 @@ class dScriptBoard(dScriptObject):
     _ConnectedShutters=0
     _ConnectedSockets=0
     _ConnectedMotionSensors=0
+    _ConnectedButtons=0
     _MACAddress='00:00:00:00:00:00'
     _VirtualRelays=32 #this is always 32
 
-    _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[], 'motion':[] }
+    _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[], 'motion':[], 'button':[] }
 
     '''Initialize the dScriptBoard element with at least its IP and port to be able to connect later'''
     def __init__(self, TCP_IP, TCP_PORT=17123, PROTOCOL='binary'):
@@ -45,18 +46,15 @@ class dScriptBoard(dScriptObject):
     '''Send command protocol independend'''
     def __SendProtocol(self,command,arguments):
         logging.debug("dScriptBoard: __SendProtocol: %s | %s",command, arguments)
-        if self._Protocol == self._Protocols[4]:    #BinaryAES
-            msg=struct.pack("B",self._GetKeyByValue(command,self._DecimalCommands))
-            for a in arguments:
-                msg = msg + struct.pack("B",a)
+        msg=struct.pack("B",self._GetKeyByValue(command,self._DecimalCommands))
+        for a in arguments:
+            msg = msg + struct.pack("B",a)
+        if self._Protocol == self._Protocols[4] and self._IsInList(msg[0], self._AESNonceCommands):    #BinaryAES and command with NONCE
             msg=self._AESEncrypt(msg)
-            data=self.__Send(msg,32) #BinaryAES commands return always 16 bytes
+            data=self.__Send(msg,16) #BinaryAES commands always return 16 bytes
             data=self._AESDecrypt(data,self._GetKeyByValue(command,self._DecimalCommands))
             return data[:self._BinaryReturnByteCounts[command]] # return only the number of bytes usually returend by Binary protocol
-        elif self._Protocol == self._Protocols[3]:    #Binary
-            msg=struct.pack("B",self._GetKeyByValue(command,self._DecimalCommands))
-            for a in arguments:
-                msg = msg + struct.pack("B",a)
+        elif self._Protocol == self._Protocols[3] or self._Protocol == self._Protocols[4]:    #Binary or BinaryAES but command without NONCE
             return self.__Send(msg,self._BinaryReturnByteCounts[command])
         else:
             raise Exception("Protocol not implemented yet: %s", self._Protocol)
@@ -136,6 +134,8 @@ class dScriptBoard(dScriptObject):
                 identifier2=self._VirtualRelays
         elif idtype =='motion':
                 identifier2=self._ConnectedMotionSensors
+        elif idtype =='button':
+                identifier2=self._ConnectedButtons
         else:
             identifier2=0
         if identifier <= 0 or identifier > identifier2:
@@ -189,8 +189,8 @@ class dScriptBoard(dScriptObject):
         try:
             data=self.__SendProtocol('GetConfig',[])
         except:
-            data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # on BinaryAES all data returned is 0 (so emulate bad return here)
-        if data[0] == 0: # data[0] is # of physical arrays - this should never be 0
+            data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # on BinaryAES all data returned is 0 (so emulate bad return here)
+        if data[6] == 0: # data[6] is the number of physical arrays - this should never be 0
             logging.info("dScriptBoard: %s: Contains default firmware", self._HostName)
             self._CustomFirmeware=False
             return False
@@ -211,6 +211,7 @@ class dScriptBoard(dScriptObject):
         self._ConnectedShutters=databytes[8]
         self._ConnectedSockets=databytes[9]
         self._ConnectedMotionSensors=databytes[10]
+        self._ConnectedButtons=databytes[11]
         self._throwEvent(self._HostName, 'config')
 
     #'''Execute the GR, GetRelay command and print the result into log'''
@@ -277,6 +278,19 @@ class dScriptBoard(dScriptObject):
         self._throwEvent(self._HostName, 'motion', identifier, self._OnOffStates[databytes[0]])
         return self._OnOffStates[databytes[0]]
 
+    '''Execute the GB, GetButton command and print the result into log'''
+    def GetButton(self,identifier):
+        logging.debug("dScriptBoard: GetButton: %s",[identifier])
+        if not self._CustomFirmeware:
+            return False
+        if not self.__CheckIdentifier(identifier,'button'):
+            return False
+        data=self.__SendProtocol('GetButton',[identifier])
+        databytes=self._ToDataBytes(data)
+        logging.info("dScriptBoard: %s: Button %s was clicked %s times", self._HostName, identifier, databytes[0])
+        self._throwEvent(self._HostName, 'button', identifier, databytes[0])
+        return databytes[0]
+		
     '''Execute the SR, SetRelay command to define a relay status'''
     def SetRelay(self,identifier,state):
         #logging.debug("dScriptBoard: SetRelay: %s | %s",identifier,state)
@@ -328,3 +342,4 @@ class dScriptBoard(dScriptObject):
         data=self.__SendProtocol('SetSocket',[identifier,self._GetKeyByValue(state.lower(),self._OnOffStates)])
         databytes=self._ToDataBytes(data)
         return self.__CheckSet(self._ToDataBytes(data)[0])
+

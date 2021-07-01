@@ -4,7 +4,8 @@
 # description: setup the current module from local system using pip
 
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+#module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
+module='dScriptModule'
 
 echo "I: install on local machine: ${module}"
 if [ "${UID}" -ne 0 ];then

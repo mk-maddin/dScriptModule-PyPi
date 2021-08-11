@@ -15,6 +15,7 @@ source "${scriptDir}/install.sh"
 echo "I: execute test"
 #sudo python3 "${scriptDir}/${module}/test/dScriptServer_InteractiveTest.py"
 #sudo python3 "${scriptDir}/${module}/test/dScriptBoard_InteractiveTest_Binary.py"
-sudo python3 "${scriptDir}/${module}/test/dScriptBoard_InteractiveTest_BinaryAES.py"
+#sudo python3 "${scriptDir}/${module}/test/dScriptBoard_InteractiveTest_BinaryAES.py"
+sudo python3 "${scriptDir}/${module}/test/dScriptServer_LoadTest.py"
 
 echo "I: script complete"

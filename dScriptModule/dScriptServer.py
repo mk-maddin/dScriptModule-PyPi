@@ -20,6 +20,7 @@ class dScriptServer(dScriptObject):
         self.IP = TCP_IP
         self.Port = TCP_PORT
         self.SetProtocol(PROTOCOL)
+        self.State = False
         self.__socket = None
 
     def StartServer(self):
@@ -34,9 +35,13 @@ class dScriptServer(dScriptObject):
         if self.__socket == None:
             raise Exception("Server already stopped")
             return False
-        self.__socket.shutdown(socket.SHUT_RDWR)
-        #self.__socket.close()
-        #self.__socket = None
+        try:
+            self.__socket.shutdown(socket.SHUT_RDWR)
+            self.__socket.close()
+        except:
+            pass
+        self.__socket = None
+        self.State = False
 
     def __ServerThread(self):
         #logging.debug("dScriptServer: __ServerThread")
@@ -56,6 +61,7 @@ class dScriptServer(dScriptObject):
         self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         #self.__socket.settimeout(self.ConnectionTimeout)
         self.__socket.listen(5)                 # Now wait for client connection.
+        self.State = True
         logging.info("dScriptServer: Started - waiting for clients...")
         try:
             while True:
@@ -65,9 +71,13 @@ class dScriptServer(dScriptObject):
         except:
             pass
         logging.info("dScriptServer: Stopped - closing server")
-        #self.__socket.shutdown(socket.SHUT_RDWR)
-        self.__socket.close()
+        try:
+            self.__socket.shutdown(socket.SHUT_RDWR)
+            self.__socket.close()
+        except:
+            pass
         self.__socket = None
+        self.State = False
 
     def __ClientConnected(self,clientsocket,addr):
         #logging.debug("dScriptServer: __ClientConnected")

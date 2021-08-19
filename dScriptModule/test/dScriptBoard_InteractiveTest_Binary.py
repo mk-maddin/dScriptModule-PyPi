@@ -4,39 +4,39 @@
 # description: script to test the dScriptServer and corresponding classes
 
 import sys
-import logging
+import logging as _LOGGER
 import time
 
 def main():
-    logging.info("main: starting program...")
+    _LOGGER.info("main: starting program...")
     from dScriptModule import dScriptBoard
 
-    logging.info("main: create dScriptBoard object")
+    _LOGGER.info("main: create dScriptBoard object")
     #dSBoard = dScriptBoard('192.168.13.120')
     dSBoard = dScriptBoard('192.168.13.156')
     #dSBoard.SetAESKey('12345678901234567890123456789012') # use default of 'This MUST be 32 characters long.'
     #dSBoard.SetProtocol('binaryaes')
 
-    logging.info("main: initialize dSBoard")
+    _LOGGER.info("main: initialize dSBoard")
     dSBoard.InitBoard()
     time.sleep(1)
 
     ## Print all board attributes
     #for att in dir(dSBoard):
-    #    logging.debug("DEBUG: dSBoard.%s = %s",att, getattr(dSBoard,att))
+    #    _LOGGER.debug("DEBUG: dSBoard.%s = %s",att, getattr(dSBoard,att))
 
     ## Done during InitBoard()
-    #logging.info("main: execute main GetXxxx functions")
+    #_LOGGER.info("main: execute main GetXxxx functions")
     #dSBoard.GetStatus()
     #if dSBoard._CustomFirmeware:
     #    dSBoard.GetConfig() # methode exists only in custom firmware
 
 #    if not dSBoard._CustomFirmeware:   
-#        logging.info("main: execute %s SetRelay functions", dSBoard._VirtualRelays)
+#        _LOGGER.info("main: execute %s SetRelay functions", dSBoard._VirtualRelays)
 #        i=0
 #        while i < dSBoard._VirtualRelays:
 #            i += 1
-#            logging.debug("main: test relay: %s", i)
+#            _LOGGER.debug("main: test relay: %s", i)
 #            dSBoard.SetRelay(i,'on')
 #            time.sleep(2)
 #            #dSBoard.GetRelay(i)  #not implemented yet
@@ -45,7 +45,7 @@ def main():
 #            time.sleep(2)
 
     if dSBoard._CustomFirmeware:
-#        logging.info("main: execute %s SetLight functions", dSBoard._ConnectedLights)
+#        _LOGGER.info("main: execute %s SetLight functions", dSBoard._ConnectedLights)
 #        i=0
 #        while i < dSBoard._ConnectedLights:
 #            i += 1
@@ -56,20 +56,20 @@ def main():
 #            dSBoard.SetLight(i,'off')
 #            time.sleep(2)
         
-#        logging.info("main: execute %s SetShutter functions", dSBoard._ConnectedShutters)
+#        _LOGGER.info("main: execute %s SetShutter functions", dSBoard._ConnectedShutters)
 #        i=0
 #        while i < dSBoard._ConnectedShutters:
 #            i += 1
 #            dSBoard.SetShutter(i,5)
 #            while not dSBoard.GetShutter(i)[0] == 5:
-#                logging.debug("main: wait for shutter to complete")
+#                _LOGGER.debug("main: wait for shutter to complete")
 #                time.sleep(5)
 #            dSBoard.SetShutter(i,'open')
 #           while dSBoard.GetShutter(i)[0] > 100:
-#               logging.debug("main: wait for shutter to complete")
+#               _LOGGER.debug("main: wait for shutter to complete")
 #               time.sleep(5)
 
-#        logging.info("main: execute %s SetSocket functions", dSBoard._ConnectedSockets)
+#        _LOGGER.info("main: execute %s SetSocket functions", dSBoard._ConnectedSockets)
 #        i=0
 #        while i < dSBoard._ConnectedSockets:
 #            i += 1
@@ -79,7 +79,7 @@ def main():
 #            dSBoard.SetSocket(i,'off')
 #            time.sleep(2)
 
-#        logging.info("main: execute %s GetMotion functions", dSBoard._ConnectedMotionSensors)
+#        _LOGGER.info("main: execute %s GetMotion functions", dSBoard._ConnectedMotionSensors)
 #        i=0
 #        while i < dSBoard._ConnectedMotionSensors:
 #            i += 1
@@ -89,17 +89,17 @@ def main():
 #            time.sleep(1)
 
 
-        logging.info("main: execute %s GetButton functions", dSBoard._ConnectedButtons)
+        _LOGGER.info("main: execute %s GetButton functions", dSBoard._ConnectedButtons)
         i=0
         while i < dSBoard._ConnectedButtons:
             i += 1
             dSBoard.GetButton(i)
             time.sleep(2)
 
-    logging.debug("main: exit now - BYE BYE")
+    _LOGGER.debug("main: exit now - BYE BYE")
     sys.exit()
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.INFO)
+_LOGGER.basicConfig(format='%(levelname)s:%(message)s', level=_LOGGER.DEBUG)
+_LOGGER.basicConfig(level=_LOGGER.DEBUG)
+#_LOGGER.basicConfig(level=_LOGGER.INFO)
 main()

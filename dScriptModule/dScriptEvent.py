@@ -4,7 +4,6 @@
 # description: 
 #   General event object class - https://emptypage.jp/notes/pyevent.en.html
 
-import logging
 
 class Event(object):
 
@@ -77,12 +76,10 @@ class dScriptEventObj(object):
     event = Event(None)
 
     def __init__(self, SENDER=None, TOPIC=None, IDENTIFIER=None, VALUE=None):
-        #logging.debug("dScriptEventObj: __init__")
         self.sender=SENDER
         self.topic=TOPIC
         self.identifier=IDENTIFIER
         self.value=VALUE
 
     def throw(self):
-        #logging.debug("dScriptEventObj: throw")
         self.event()

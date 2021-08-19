@@ -6,7 +6,7 @@
 
 ##--imports required
 import argparse
-import logging
+import logging as _LOGGER
 import socket
 import struct
 import sys
@@ -36,14 +36,14 @@ parser.add_argument('--id','-i',default=0,help='ID of the object to get/set',typ
 parser.add_argument('--state','-s',help='State to set the object to',choices=['on','off'])
 
 ##--configure logging
-#logging.basicConfig(level=logging.INFO)
-logging.basicConfig(level=logging.DEBUG)
-logging.debug('parsing commandline arguments')
+#_LOGGER.basicConfig(level=_LOGGER.INFO)
+_LOGGER.basicConfig(level=_LOGGER.DEBUG)
+_LOGGER.debug('parsing commandline arguments')
 args=parser.parse_args()
 
 ##--build the binary command
 if args.mode == 'get':
-    logging.info('%s %s %s', args.mode, args.object, args.id)
+    _LOGGER.info('%s %s %s', args.mode, args.object, args.id)
 
     if args.object == 'status':
         msg='\x30'
@@ -59,86 +59,86 @@ if args.mode == 'get':
         msg='\x50'
 
     if not args.object == 'status' and not args.object == 'analogue' and not args.object == 'config': 
-        logging.debug('adding object id')
+        _LOGGER.debug('adding object id')
         msg=msg + struct.pack("B",args.id)
 
 elif args.mode == 'set':
     if args.state is None:
-        logging.error('state parameter is required in set mode')
+        _LOGGER.error('state parameter is required in set mode')
         sys.exit(22)
-    logging.info('%s %s %s %s', args.mode, args.object, args.id, args.state)
+    _LOGGER.info('%s %s %s %s', args.mode, args.object, args.id, args.state)
 
     if args.object == 'relay':
         msg='\x31'
         if args.id > 24:
-            logging.error('relays can be set only within a range of 1-24')
+            _LOGGER.error('relays can be set only within a range of 1-24')
             sys.exit(22)
     elif args.object == 'io':
         msg='\x32'
     else:
-        logging.error('%s object is not valid in set mode', args.object)
+        _LOGGER.error('%s object is not valid in set mode', args.object)
         sys.exit(22)
 
-    logging.debug('adding object id byte')
+    _LOGGER.debug('adding object id byte')
     msg=msg + struct.pack("B",args.id)
 
-    logging.debug('adding status byte')
+    _LOGGER.debug('adding status byte')
     if args.state == 'on':
         state='\x01'
     else:
         state='\x00'
     msg=msg + state
 
-    logging.debug('adding pulse bytes')
+    _LOGGER.debug('adding pulse bytes')
     if args.object == 'relay':
         msg = msg + '\x00\x00\x00\x00'
 
 ##--connect to the tcp server
-logging.debug('connecting to: %s', args.hostname)
+_LOGGER.debug('connecting to: %s', args.hostname)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.settimeout(args.timeout)
 s.connect((args.hostname, args.port))
 
 ##--sending message
-logging.debug('sending msg: %s', msg)
+_LOGGER.debug('sending msg: %s', msg)
 try:
     s.send(msg)
     data = s.recv(args.buffer)
 except:
-    logging.error('error while sending - closing connection')
+    _LOGGER.error('error while sending - closing connection')
     s.close()
     sys.exit(102)
 s.close()
 
 ##--convert the result for further processing
 databytes = [str(ord(x)) for x in data]
-logging.debug('recieved databytes: %s', databytes)
+_LOGGER.debug('recieved databytes: %s', databytes)
 databits = ''.join(format(ord(byte), '08b') for byte in data)
-logging.debug('recieved databits: %s', databits)
+_LOGGER.debug('recieved databits: %s', databits)
 
 if args.object == 'status':
-    logging.info('module: %s', moduleids[databytes[0]])
-    logging.info('system firmware: %s.%s', databytes[1],databytes[2])
-    logging.info('program firmware: %s.%s', databytes[3],databytes[4])
-    logging.info('power supply: %sv', float(databytes[5])/10.00)
-    logging.info ('internal degree: %s%sC', int(databits[(6*8):(8*8)],2)/10.00, degree_sign)
+    _LOGGER.info('module: %s', moduleids[databytes[0]])
+    _LOGGER.info('system firmware: %s.%s', databytes[1],databytes[2])
+    _LOGGER.info('program firmware: %s.%s', databytes[3],databytes[4])
+    _LOGGER.info('power supply: %sv', float(databytes[5])/10.00)
+    _LOGGER.info ('internal degree: %s%sC', int(databits[(6*8):(8*8)],2)/10.00, degree_sign)
 if args.object == 'config':
-    logging.info('module: %s', moduleids[databytes[0]])
-    logging.info ('tcpport: %s', int(databits[(1*8):(8*8)],2)/10.00)
-    logging.info('protocol: %s', protids[databytes[3]]) 
-    logging.info('pysical relays: %s', databytes[4])
-    logging.info('lights: %s', databytes[5])
-    logging.info('shutters: %s', databytes[6])
-    logging.info('sockets: %s', databytes[7])
+    _LOGGER.info('module: %s', moduleids[databytes[0]])
+    _LOGGER.info ('tcpport: %s', int(databits[(1*8):(8*8)],2)/10.00)
+    _LOGGER.info('protocol: %s', protids[databytes[3]]) 
+    _LOGGER.info('pysical relays: %s', databytes[4])
+    _LOGGER.info('lights: %s', databytes[5])
+    _LOGGER.info('shutters: %s', databytes[6])
+    _LOGGER.info('sockets: %s', databytes[7])
 elif args.mode == 'set':
     if not databits == '00000000':
-        logging.error('error setting state: 0x%s', databits)
+        _LOGGER.error('error setting state: 0x%s', databits)
         sys.exit(11)
-    logging.info('success')
+    _LOGGER.info('success')
     sys.exit(0)
 elif args.mode == 'get':
     if args.object == 'relay' or args.object == 'io':
-        logging.info ('requested %s %s state is: %s', args.object, args.id, onoff[databits[onoff_bit]])
+        _LOGGER.info ('requested %s %s state is: %s', args.object, args.id, onoff[databits[onoff_bit]])
         
         if args.object == 'relay':
             ids=range(relay_max,0,-1)
@@ -148,6 +148,6 @@ elif args.mode == 'get':
         a=onoff_bit  
         for i in ids:
             a += 1
-            logging.info('%s %s state is: %s', args.object, i, onoff[databits[a]])    
+            _LOGGER.info('%s %s state is: %s', args.object, i, onoff[databits[a]])    
     #TO-DO: analogue & counter
 

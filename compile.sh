@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# version: 2020.06.14
+# version: 2021.09.11
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: setup the current module from local system using pip
 
@@ -10,7 +10,11 @@ module='dScriptModule'
 pip3 install bitstring
 
 echo "I: compile package ${module}"
-cd "${scriptDir}" && python3 setup.py bdist_wheel
+if [ "${UID}" -ne 0 ];then
+    cd "${scriptDir}" && sudo python3 setup.py bdist_wheel
+else
+    cd "${scriptDir}" && python3 setup.py bdist_wheel
+fi
 
 #echo "I: upload to pypi: ${module}"
 #cat > "$HOME/.pypirc" <<EOF

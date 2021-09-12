@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2021.06.09
+# version: 2021.09.11
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object being able to translate dScript (by robot-electronics / devantech ltd.) board commands
@@ -99,7 +99,7 @@ class dScriptObject(object):
         return True
 
     def _throwEvent(self, sender=IP, topic='topic', identifier=None, value=None):
-        _LOGGER.debug("dScriptObject: _throwEvent: from %s about %s for %s with value %s", sender, topic, identifier,value)
+        _LOGGER.debug("dScriptObject: _throwEvent: from %s about %s for %s with value %s", sender, topic, identifier, value)
         topic=topic.lower()
         if not self._IsInList(topic,self._EventHandlers.keys()):
             raise Exception("Unknown event handler topic: %s", topic)
@@ -108,6 +108,7 @@ class dScriptObject(object):
         eventobj = dScriptEventObj(sender,topic,identifier,value)
         for handler in self._EventHandlers[topic]:
             eventobj.event += handler
+        #_LOGGER.debug("dScriptObject: _throwEvent: object: %s", eventobj)
         eventobj.throw()
 
     '''Print the status of this dScriptObject'''

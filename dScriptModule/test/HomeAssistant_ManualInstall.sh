@@ -1,5 +1,5 @@
 #!/bin/bash
-# version: 2019.12.29
+# version: 2021.09.11
 # description: manually copy and install the dScriptModule to HA server for test
 
 ##-- save maximum error code

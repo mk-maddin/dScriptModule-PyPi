@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# version: 2020.06.14
+# version: 2021.09.11
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: wrapper script to communicate with dsXXXX modules
 #   this script uses the binary / binary AES encoding

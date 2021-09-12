@@ -1,5 +1,5 @@
 #!/bin/bash
-# version: 2019.12.29
+# version: 2021.09.11
 # description: starts a dScriptServer and simulates a high number of connections to this server
 
 ##-- save maximum error code

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# version: 2021.06.30
+# version: 2021.09.11
 # author: Martin Kraemer, mk.maddin@gmail.com
 # description: 
 #   object capturing all incoming command triggers (protocol independend) and trowing events
@@ -33,7 +33,7 @@ class dScriptVirtualBoard(dScriptBoard):
     '''Define board model such as connected relays lights shutters sockets etc'''
     def InitBoard(self):
         _LOGGER.debug("dScriptVirtualBoard: __initBoardConfig")
-        self._PhysicalRelays=dScriptObject._ModulesConfig[self._ModuleID]['_PhysicalRelays']
+        self._PhysicalRelays = dScriptObject._ModulesConfig[self._ModuleID]['_PhysicalRelays']
         if self._PhysicalRelays == 2:
             self._ConnectedLights = 1
             self._ConnectedShutters = 0
@@ -72,7 +72,7 @@ class dScriptVirtualBoard(dScriptBoard):
         i=0
         self._statesShutters = [0] * self._ConnectedShutters
         self._closingTimeShutters = [0] * self._ConnectedShutters
-        self._movementShutters = [0] * self._movementShutters
+        self._movementShutters = [0] * self._ConnectedShutters
         while i < self._ConnectedShutters:
             self._statesShutters[i] = random.randint(0, 100) #random closing level
             self._closingTimeShutters[i] = random.randint(225, 611)/10 #random closing time (in seconds - more or less realistic values)

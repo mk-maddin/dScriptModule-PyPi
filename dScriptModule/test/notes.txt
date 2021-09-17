@@ -1,0 +1,4 @@
+clear; ./compile.sh && ./uninstall.sh && ./test.sh
+
+python3 ./dScriptModule/test/echoClient_async_single.py
+python3 ./dScriptModule/test/dScriptServer_async_StartStop.py

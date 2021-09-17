@@ -13,6 +13,6 @@ if [ ! -e  "${scriptDir}/install.sh" ];then
 source "${scriptDir}/install.sh"
 
 echo "I: execute test"
-sudo python3 "${scriptDir}/${module}/test/dScriptServer_StartStopTest_async.py"
+sudo python3 "${scriptDir}/${module}/test/dScriptServer_async_StartStop.py"
 
 echo "I: script complete"

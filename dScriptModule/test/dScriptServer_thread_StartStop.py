@@ -8,8 +8,6 @@ import sys
 import logging as _LOGGER
 import time
 
-import asyncio
-
 def main():
     try:
         _LOGGER.info("main: starting program...")
@@ -20,20 +18,20 @@ def main():
         server = dScriptModule.dScriptServer()
         
         _LOGGER.debug("main: starting server")
-        server.StartServer()    
+        server.StartServer_async()    
     
         _LOGGER.debug("main: sleep...")
         while True:
-            time.sleep(10)  
-        #time.sleep(10)
+            time.sleep(10)
+            _LOGGER.debug("main: sleep 10 ...")
        
         _LOGGER.debug("main: stopping server")
-        server.StopServer()
+        server.StopServer_async()
         
         _LOGGER.debug("main: all done")
     except KeyboardInterrupt:
         _LOGGER.debug("main: keyboard interrupted - stopping server")
-        server.StopServer()
+        server.StopServer_async()
     except Exception as e: 
         _LOGGER.debug("main: Exception on main: %s (%s.%s)", str(e), e.__class__.__module__, type(e).__name__)
 

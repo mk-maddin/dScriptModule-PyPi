@@ -11,6 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 from .dScriptObject import *
 from threading import Thread
 import asyncio
+import _thread
+import socket
+
 
 class dScriptServer(dScriptObject):
 
@@ -32,6 +35,8 @@ class dScriptServer(dScriptObject):
     def StartServer(self):
         _LOGGER.debug("dScriptServer - %s:%s: StartServer", self.IP, self.Port)
         if self.__mode == 'async':
+            return self.async_StartServer()
+        elif self.__mode == 'thread':
             return self.StartServer_async()
         if not self.__server is None or not self.__mode is None:            
             raise Exception("Server already started")
@@ -44,10 +49,38 @@ class dScriptServer(dScriptObject):
         except Exception as e: 
             _LOGGER.error("dScriptServer - %s:%s: StartServer failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
 
-    def StartServer_async(self):
-        _LOGGER.debug("dScriptServer - %s:%s: StartServer_async", self.IP, self.Port)
+    async def async_StartServer(self):
+        _LOGGER.debug("dScriptServer - %s:%s: async_StartServer", self.IP, self.Port)
         if self.__mode == 'sync':
             return self.StartServer()
+        elif self.__mode == 'thread':
+            return self.StartServer_async()
+        if not self.__server is None or not self.__mode is None:
+            raise Exception("Server already running")
+            return False
+        try:
+            loop = asyncio.get_event_loop()
+            server_coro = await asyncio.start_server(self.__async_ClientConnected, self.IP, self.Port)
+            if not loop.is_running():
+                self.__server = loop.run_until_complete(server_coro)
+            else:
+                 self.__server = server_coro
+            _LOGGER.info("dScriptServer - %s:%s: async_StartServer - serving on: %s:%s", self.IP, self.Port, self.IP, self.Port)
+            self.State = self.__server.is_serving()
+            self.__mode == 'thread'
+            _LOGGER.debug("dScriptServer - %s:%s: async_StartServer - completed", self.IP, self.Port)
+        except Exception as e: 
+            _LOGGER.error("dScriptServer - %s:%s: async_StartServer failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
+
+    def StartServer_async(self):
+        self.StartServer_async_thread()
+            
+    def StartServer_async_thread(self):
+        _LOGGER.debug("dScriptServer - %s:%s: StartServer_async_thread", self.IP, self.Port)
+        if self.__mode == 'sync':
+            return self.StartServer()
+        elif self.__mode == 'async':
+            return self.async_StartServer()
         if not self.__server is None or not self.__mode is None:
             raise Exception("Server already running")
             return False
@@ -55,13 +88,15 @@ class dScriptServer(dScriptObject):
             self.__mode = 'init'
             self.__thread = Thread(target=self.__ServerThread_async)
             self.__thread.start()
-            _LOGGER.debug("dScriptServer - %s:%s: StartServer_async - completed", self.IP, self.Port)
+            _LOGGER.debug("dScriptServer - %s:%s: StartServer_async_thread - completed", self.IP, self.Port)
         except Exception as e: 
-            _LOGGER.error("dScriptServer - %s:%s: StartServer_async failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
+            _LOGGER.error("dScriptServer - %s:%s: StartServer_async_thread failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
 
     def StopServer(self):
         _LOGGER.debug("dScriptServer - %s:%s: StopServer_async", self.IP, self.Port)
         if self.__mode == 'async':
+            return self.async_StopServer()
+        elif self.__mode == 'thread':
             return self.StopServer_async()
         if self.__server == None:
             self.__server.shutdown(socket.SHUT_RDWR)
@@ -76,16 +111,38 @@ class dScriptServer(dScriptObject):
         self.__server = None
         self.__thread = None
 
-    def StopServer_async(self):
-        _LOGGER.debug("dScriptServer - %s:%s: StopServer_async", self.IP, self.Port)
+    async def async_StopServer(self):
+        _LOGGER.debug("dScriptServer - %s:%s: async_StopServer", self.IP, self.Port)
         if self.__mode == 'sync':
             return self.StopServer()
+        elif self.__mode == 'thread':
+            return self.StopServer_async()
         if self.__server is None:
             raise Exception("Server already stopped")
         try:
             self.__server.close()
         except Exception as e: 
-            _LOGGER.error("dScriptServer - %s:%s: StopServer_async failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
+            _LOGGER.error("dScriptServer - %s:%s: async_StopServer failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
+            pass
+        self.State = False
+        self.__mode == None
+        self.__server = None
+
+    def StopServer_async(self):
+        self.StopServer_async_thread()
+        
+    def StopServer_async_thread(self):
+        _LOGGER.debug("dScriptServer - %s:%s: StopServer_async_thread", self.IP, self.Port)
+        if self.__mode == 'sync':
+            return self.StopServer()
+        elif self.__mode == 'async':
+            return self.async_StopServer()
+        if self.__server is None:
+            raise Exception("Server already stopped")
+        try:
+            self.__server.close()
+        except Exception as e: 
+            _LOGGER.error("dScriptServer - %s:%s: StopServer_async_thread failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
             pass        
         self.State = False
         self.__mode == None
@@ -137,11 +194,10 @@ class dScriptServer(dScriptObject):
             _LOGGER.info("dScriptServer - %s:%s: async_RunServerThread - serving on: %s", self.IP, self.Port, addr)
         except Exception as e: 
             _LOGGER.error("dScriptServer - %s:%s: async_RunServerThread failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
-
         try:
             await self.__server.start_serving()
             self.State = self.__server.is_serving()
-            self.__mode == 'async'
+            self.__mode == 'thread'
             _LOGGER.debug("dScriptServer - %s:%s: async_RunServerThread - started serving (%s) on: %s", self.IP, self.Port, self.__server.is_serving(), addr)
             while self.State:
                 self.State = self.__server.is_serving()

@@ -1,0 +1,5 @@
+exclude *.sh .gitignore
+prune dScriptModule.egg-info
+prune .git
+prune dScriptModule/__pycache__
+prune dScriptModule/test

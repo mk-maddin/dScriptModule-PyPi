@@ -11,19 +11,15 @@ pip3 install bitstring
 
 echo "I: compile package ${module}"
 if [ "${UID}" -ne 0 ];then
-    cd "${scriptDir}" && sudo python3 setup.py bdist_wheel
+    cd "${scriptDir}" && sudo python3 setup.py sdist bdist_wheel
 else
-    cd "${scriptDir}" && python3 setup.py bdist_wheel
+    cd "${scriptDir}" && python3 setup.py sdist bdist_wheel
 fi
 
-#echo "I: upload to pypi: ${module}"
-#cat > "$HOME/.pypirc" <<EOF
-#[distutils] 
-#index-servers=pypi
-#[pypi] 
-#repository = https://upload.pypi.org/legacy/ 
-#username = mk-maddin
-#EOF
-#cd "${scriptDir}" && python3 -m twine upload dist/*
+echo "I: upload to pypi: ${module}"
+cd "${scriptDir}" && python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+echo "I: for productive upload execute:"
+echo "   python3 -m twine upload dist/*"
 
 echo "I: script complete"

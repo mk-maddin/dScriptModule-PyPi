@@ -72,7 +72,7 @@ class dScriptBoard(dScriptObject):
             
     '''Send command protocol independend'''
     async def __async_SendProtocol(self,command,arguments):
-        _LOGGER.debug("dScriptBoard - %s: async_SendProtocols: %s | %s", self.friendlyname, command, arguments)
+        _LOGGER.debug("dScriptBoard - %s: async_SendProtocol: %s | %s", self.friendlyname, command, arguments)
         try:
             msg=struct.pack("B",self._GetKeyByValue(command,self._DecimalCommands))
             for a in arguments:
@@ -228,11 +228,13 @@ class dScriptBoard(dScriptObject):
                 await self.__async_Send(msg,buff,True)
             else:
                 _LOGGER.error("dScriptBoard - %s: async_Send failed with retry: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-                writer.close()
+                if not write is None:
+                    writer.close()
                 return False
         except Exception as e: 
             _LOGGER.error("dScriptBoard - %s: async_Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-            writer.close()
+            if not write is None:
+                writer.close()
             return False
         
     '''Check if identifier parameter is valid'''

@@ -7,17 +7,23 @@ scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #module="$(basename $( dirname "${BASH_SOURCE[0]}" ))"
 module='dScriptModule'
 
-pip3 install bitstring
-
 echo "I: compile package ${module}"
 if [ "${UID}" -ne 0 ];then
-    cd "${scriptDir}" && sudo python3 setup.py sdist bdist_wheel
+    cd "${scriptDir}" &&
+    sudo pip3 install bitstring &&
+    sudo pip3 install pycryptodome &&
+    sudo python3 setup.py sdist bdist_wheel
 else
-    cd "${scriptDir}" && python3 setup.py sdist bdist_wheel
+    cd "${scriptDir}" &&
+    pip3 install bitstring &&
+    pip3 install pycryptodome &&
+    python3 setup.py sdist bdist_wheel
 fi
 
 echo "I: upload to pypi: ${module}"
-cd "${scriptDir}" && python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+cd "${scriptDir}" && 
+	pip3 install twine && 
+	python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 echo "I: for productive upload execute:"
 echo "   python3 -m twine upload dist/*"

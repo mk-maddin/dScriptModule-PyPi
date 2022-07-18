@@ -215,7 +215,10 @@ class dScriptBoard(dScriptObject):
         _LOGGER.debug("dScriptBoard - %s: async_Send: %s | %s", self.friendlyname, msg, buff)
         try:
             writer = None
-            reader, writer = await asyncio.open_connection(self.IP, self.Port, loop=self.__loop)
+            if self.__loop is not None:
+                _LOGGER.warning("dScriptBoard - %s: async_Send loop parameter is no longer forwarded as of python 3.10", self.friendlyname )
+            #reader, writer = await asyncio.open_connection(self.IP, self.Port, loop=self.__loop)
+            reader, writer = await asyncio.open_connection(self.IP, self.Port)
             writer.write(msg)
             data = await reader.read(buff)
             writer.close()

@@ -13,7 +13,7 @@ import asyncio
 async def tcp_echo_client(message, loop): 
     try:
         _LOGGER.info("tcp_echo_client: running one shot client...")
-        reader, writer = await asyncio.open_connection('127.0.0.1', 17123, loop=loop) 
+        reader, writer = await asyncio.open_connection('127.0.0.1', 17123) 
         
         _LOGGER.debug("tcp_echo_client: Send: %s", message)
         writer.write(message.encode())

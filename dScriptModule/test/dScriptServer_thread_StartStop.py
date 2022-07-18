@@ -15,7 +15,7 @@ def main():
 
         
         _LOGGER.debug("main: create dScriptServer object")
-        server = dScriptModule.dScriptServer()
+        server = dScriptModule.dScriptServer(TCP_IP='0.0.0.0')
         
         _LOGGER.debug("main: starting server")
         server.StartServer_async()    

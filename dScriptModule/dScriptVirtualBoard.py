@@ -20,7 +20,7 @@ class dScriptVirtualBoard(dScriptBoard):
     def __init__(self, TCP_IP='127.0.0.1', TCP_PORT=17123, PROTOCOL='binary'):
         _LOGGER.debug("dScriptVirtualBoard: __init__")
         self._MACAddress="02:00:00:%02x:%02x:%02x" % (random.randint(0, 255),random.randint(0, 255),random.randint(0, 255))
-        self._ModuleID=random.choice(list(dScriptObject._Modules.keys()))
+        self._ModuleID=random.choice(list(dScriptObject._ModulesConfig.keys())) # only modules with known config can be emulated
         self._CustomFirmeware=True
         self.InitBoard()
 

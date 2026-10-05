@@ -42,8 +42,8 @@ class dScriptServer(dScriptObject):
             raise Exception("Server already started")
             return False
         try:
-            self.__mode = 'init'
-            self.__thread = Thread(target=self.__ServerThread)
+            self.__mode = 'sync'
+            self.__thread = Thread(target=self.__ServerThread, daemon=True)
             self.__thread.start()
             _LOGGER.debug("dScriptServer - %s:%s: StartServer - completed", self.IP, self.Port)
         except Exception as e: 
@@ -67,7 +67,7 @@ class dScriptServer(dScriptObject):
                  self.__server = server_coro
             _LOGGER.info("dScriptServer - %s:%s: async_StartServer - serving on: %s:%s", self.IP, self.Port, self.IP, self.Port)
             self.State = self.__server.is_serving()
-            self.__mode == 'thread'
+            self.__mode = 'async'
             _LOGGER.debug("dScriptServer - %s:%s: async_StartServer - completed", self.IP, self.Port)
         except Exception as e: 
             _LOGGER.error("dScriptServer - %s:%s: async_StartServer failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
@@ -85,8 +85,8 @@ class dScriptServer(dScriptObject):
             raise Exception("Server already running")
             return False
         try:
-            self.__mode = 'init'
-            self.__thread = Thread(target=self.__ServerThread_async)
+            self.__mode = 'thread'
+            self.__thread = Thread(target=self.__ServerThread_async, daemon=True)
             self.__thread.start()
             _LOGGER.debug("dScriptServer - %s:%s: StartServer_async_thread - completed", self.IP, self.Port)
         except Exception as e: 
@@ -98,16 +98,20 @@ class dScriptServer(dScriptObject):
             return self.async_StopServer()
         elif self.__mode == 'thread':
             return self.StopServer_async()
-        if self.__server == None:
-            self.__server.shutdown(socket.SHUT_RDWR)
+        if self.__server is None:
             raise Exception("Server already stopped")
+        self.State = False
+        try:
+            self.__server.shutdown(socket.SHUT_RDWR) # wakes up the thread blocked in accept()
+        except Exception:
+            pass
         try:
             self.__server.close()
         except Exception as e:
             _LOGGER.error("dScriptServer: StopServer: Exception on server socket close: %s (%s.%s)", str(e), e.__class__.__module__, type(e).__name__)
             pass
         self.State = False
-        self.__mode == None
+        self.__mode = None
         self.__server = None
         self.__thread = None
 
@@ -125,7 +129,7 @@ class dScriptServer(dScriptObject):
             _LOGGER.error("dScriptServer - %s:%s: async_StopServer failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
             pass
         self.State = False
-        self.__mode == None
+        self.__mode = None
         self.__server = None
 
     def StopServer_async(self):
@@ -145,7 +149,7 @@ class dScriptServer(dScriptObject):
             _LOGGER.error("dScriptServer - %s:%s: StopServer_async_thread failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
             pass        
         self.State = False
-        self.__mode == None
+        self.__mode = None
         self.__server = None
         self.__thread = None
 
@@ -172,11 +176,12 @@ class dScriptServer(dScriptObject):
             while self.State:
                clientsocket, addr = self.__server.accept()     # Establish connection with client.
                _LOGGER.debug("dScriptServer - %s:%s: ServerThread: client connected: %s", self.IP, self.Port, addr)
+               clientsocket.settimeout(10) # never block a client thread forever
                _thread.start_new_thread(self.__ClientConnected,(clientsocket,addr))
         except Exception as e:
-            _LOGGER.error("dScriptServer - %s:%s: ServerThread failed on client connect: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
-            self.StopServer()
-            pass
+            if self.State:
+                _LOGGER.error("dScriptServer - %s:%s: ServerThread failed on client connect: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
+                self.StopServer()
         _LOGGER.debug("dScriptServer - %s:%s: ServerThread - stopped serving on: (%s:%s)", self.IP, self.Port, self.IP, self.Port)
 
     def __ServerThread_async(self):
@@ -197,11 +202,10 @@ class dScriptServer(dScriptObject):
         try:
             await self.__server.start_serving()
             self.State = self.__server.is_serving()
-            self.__mode == 'thread'
             _LOGGER.debug("dScriptServer - %s:%s: async_RunServerThread - started serving (%s) on: %s", self.IP, self.Port, self.__server.is_serving(), addr)
             while self.State:
                 self.State = self.__server.is_serving()
-                await asyncio.sleep(0)                
+                await asyncio.sleep(1) # do not spin - this is only a status watcher
             _LOGGER.debug("dScriptServer - %s:%s: async_RunServerThread - stopped serving on: %s", self.IP, self.Port, addr)
         except Exception as e: 
             _LOGGER.error("dScriptServer - %s:%s: async_RunServerThread failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
@@ -210,31 +214,34 @@ class dScriptServer(dScriptObject):
     def __ClientConnected(self,clientsocket,addr):
         _LOGGER.debug("dScriptServer - %s:%s: ClientConnected: %s | %s", self.IP, self.Port, clientsocket, addr)
         try:
-            data = clientsocket.recv(2) # received byte size is always 2 bytes from dScriptServerUpdate
+            data = clientsocket.recv(self.__socketsize) # firmware sends 3 bytes (cmd, id, state)
             _LOGGER.debug("dScriptServer - %s:%s: ClientConnected: received data from: %s", self.IP, self.Port, addr)
 
-            clientsocket.close()
             _LOGGER.debug("dScriptServer - %s:%s: ClientConnected: closed connection: %s", self.IP, self.Port, addr)
         except Exception as e:
             _LOGGER.error("dScriptServer - %s:%s: ClientConnected failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
-            #clientsocket.shutdown(socket.SHUT_RDWR)
             return False
+        finally:
+            try: clientsocket.close()
+            except Exception: pass
         self.__InterpreteData(data,addr[0])
 
     async def __async_ClientConnected(self, reader, writer):
         _LOGGER.debug("dScriptServer - %s:%s: async_ClientConnected: %s | %s", self.IP, self.Port, reader, writer)  
         try:
-            data = await reader.read(self.__socketsize) 
-            #message = data.decode() 
             addr = writer.get_extra_info('peername') 
+            data = await asyncio.wait_for(reader.read(self.__socketsize), timeout=10) # never wait forever for a (broken) client
             _LOGGER.debug("dScriptServer - %s:%s: async_ClientConnected: received data from: %s", self.IP, self.Port, addr)
-
-            writer.close()
-            await asyncio.sleep(0)
-            _LOGGER.debug("dScriptServer - %s:%s: async_ClientConnected: closed connection: %s", self.IP, self.Port, addr)
         except Exception as e: 
             _LOGGER.error("dScriptServer - %s:%s: async_ClientConnected failed: %s (%s.%s)", self.IP, self.Port, str(e), e.__class__.__module__, type(e).__name__)
             return False
+        finally:
+            try:
+                writer.close()
+                await asyncio.wait_for(writer.wait_closed(), timeout=5)
+            except Exception:
+                pass
+            _LOGGER.debug("dScriptServer - %s:%s: async_ClientConnected: closed connection: %s", self.IP, self.Port, writer.get_extra_info('peername'))
         self.__InterpreteData(data,addr[0])
         
     def __InterpreteData(self,data,SenderIP):
@@ -242,8 +249,15 @@ class dScriptServer(dScriptObject):
         #TO-DO: identify protocol & select according action
         #if self._Protocol == self._Protocols[4]: #BinaryAES
         #    data=self._AESDecrypt(data)
-        databytes=self._ToDataBytes(data)
-        self.__InterpreteBinary(databytes,SenderIP)
+        try:
+            databytes=self._ToDataBytes(data)
+            if len(databytes) == 0:
+                _LOGGER.debug("dScriptServer - %s:%s: InterpreteData: empty message from %s", self.IP, self.Port, SenderIP)
+                return False
+            self.__InterpreteBinary(databytes,SenderIP)
+        except Exception as e:
+            _LOGGER.error("dScriptServer - %s:%s: InterpreteData failed for %s from %s: %s (%s.%s)", self.IP, self.Port, data, SenderIP, str(e), e.__class__.__module__, type(e).__name__)
+            return False
 
     def __InterpreteBinary(self,databytes,SenderIP):
         _LOGGER.debug("dScriptServer - %s:%s: InterpreteBinary: %s | %s", self.IP, self.Port, databytes, SenderIP)
@@ -258,13 +272,18 @@ class dScriptServer(dScriptObject):
         elif cmd == 'heartbeat' or cmd == 'getstatus' or cmd == 'getconfig' or cmd == 'testonline': #all of these do not need an identifier
             self._throwEvent(SenderIP, cmd)
         else:
-            if len(databytes) == 3:
-                if int(databytes[2]) < 0:
+            if len(databytes) >= 3:
+                if int(databytes[2]) < 0 or int(databytes[2]) == 255: # firmware sends -1 (=255 as unsigned byte) for 'no state'
                     self._throwEvent(SenderIP, cmd, int(databytes[1]))
                 elif cmd == 'getlight' or cmd == 'getsocket' or cmd == 'getmotion' or cmd == 'getrelay' or cmd == 'getinput':
-                    self._throwEvent(SenderIP, cmd, int(databytes[1]), self._OnOffStates[databytes[2]])
+                    if databytes[2] in self._OnOffStates:
+                        self._throwEvent(SenderIP, cmd, int(databytes[1]), self._OnOffStates[databytes[2]])
+                    else:
+                        self._throwEvent(SenderIP, cmd, int(databytes[1]))
                 else:
                     self._throwEvent(SenderIP, cmd, int(databytes[1]), int(databytes[2]))
-            else:
+            elif len(databytes) == 2:
                 self._throwEvent(SenderIP, cmd, int(databytes[1]))
+            else:
+                _LOGGER.debug("dScriptServer - %s:%s: InterpreteBinary: missing identifier for %s from %s", self.IP, self.Port, cmd, SenderIP)
         #return True

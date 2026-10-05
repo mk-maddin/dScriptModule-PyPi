@@ -40,8 +40,8 @@ class dScriptObject(object):
             'GetConfig':12, 'GetLight':1, 'GetShutter':2, 'GetSocket':1, 'GetMotion':1, 'GetButton':1,
             'HeartBeat':0, 'TestOnline':0, 'StopServer':0, 'BoardRestart':0}
 
-    _Modules = {30:'dS3484', 31:'dS1242', 34:'dS2824', 35:'dS378'}
-    _ModulesConfig = {30:{'_PhysicalRelays':4,}, 31:{'_PhyiscalRelays':2}, 34:{'_PhysicalRelays':24}, 35:{'_PhysicalRelays':8}}
+    _Modules = {30:'dS3484', 31:'dS1242', 34:'dS2824', 35:'dS378', 36:'TCP184', 42:'dS2832'}
+    _ModulesConfig = {30:{'_PhysicalRelays':4,}, 31:{'_PhysicalRelays':2}, 34:{'_PhysicalRelays':24}, 35:{'_PhysicalRelays':8}, 36:{'_PhysicalRelays':4}}
     _OnOffStates = {0:'off', 1:'on', 2:'toggle'}
     _ShutterStates = {0:'stopped', 1:'opening', 2:'closing'}
 
@@ -66,6 +66,12 @@ class dScriptObject(object):
                 return key
         return None
 
+    '''Return the event handlers of this instance (class level dict is only the template of known topics)'''
+    def _GetEventHandlers(self):
+        if '_EventHandlers' not in self.__dict__:
+            self._EventHandlers = { topic:[] for topic in type(self)._EventHandlers.keys() }
+        return self._EventHandlers
+
     '''Translate received set of data into byte array'''
     def _ToDataBytes(self,data):
         #_LOGGER.debug("dScriptObject: _ToDataBytes: %s",data)
@@ -83,30 +89,35 @@ class dScriptObject(object):
     def addEventHandler(self, topic, handler):
         #_LOGGER.debug("dScriptObject: addEventHandler")
         topic=topic.lower()
-        if not self._IsInList(topic,self._EventHandlers.keys()):
+        handlers=self._GetEventHandlers()
+        if not self._IsInList(topic,handlers.keys()):
             raise Exception("Unknown event handler topic: %s", topic)
             return False
-        self._EventHandlers[topic].append(handler) 
+        if not handler in handlers[topic]: # never register the same handler twice
+            handlers[topic].append(handler) 
         return True
 
     def removeEventHandler(self, topic, handler):
         #_LOGGER.debug("dScriptObject: removeEventHandler")
         topic=topic.lower()
-        if not self._IsInList(topic,self._EventHandlers.keys()):
+        handlers=self._GetEventHandlers()
+        if not self._IsInList(topic,handlers.keys()):
             raise Exception("Unknown event handler topic: %s", topic)
             return False
-        self._EventHandlers[topic].remove(handler)
+        if handler in handlers[topic]:
+            handlers[topic].remove(handler)
         return True
 
     def _throwEvent(self, sender=IP, topic='topic', identifier=None, value=None):
         _LOGGER.debug("dScriptObject: _throwEvent: from %s about %s for %s with value %s", sender, topic, identifier, value)
         topic=topic.lower()
-        if not self._IsInList(topic,self._EventHandlers.keys()):
+        handlers=self._GetEventHandlers()
+        if not self._IsInList(topic,handlers.keys()):
             raise Exception("Unknown event handler topic: %s", topic)
             return False
         
         eventobj = dScriptEventObj(sender,topic,identifier,value)
-        for handler in self._EventHandlers[topic]:
+        for handler in handlers[topic]:
             eventobj.event += handler
         #_LOGGER.debug("dScriptObject: _throwEvent: object: %s", eventobj)
         eventobj.throw()

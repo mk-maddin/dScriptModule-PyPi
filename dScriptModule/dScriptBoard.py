@@ -704,7 +704,7 @@ class dScriptBoard(dScriptObject):
             databytes=self._ToDataBytes(data)
             return self.__CheckSet(self._ToDataBytes(data)[0])
         except Exception as e:
-            _LOGGER.error("dScriptBoard - %s: async_SetLight failed: %s (%s.%s)", str(e), e.__class__.__module__, type(e).__name__)
+            _LOGGER.error("dScriptBoard - %s: async_SetLight failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
 
     '''Execute the SH, SetShutter command to define a shutter status'''
     def SetShutter(self,identifier,state) -> None | bool:

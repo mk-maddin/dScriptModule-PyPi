@@ -1,12 +1,16 @@
+import re
 import setuptools
-import dScriptModule
+
+# read the version without importing the package (its dependencies are not installed in the isolated build environment)
+with open("dScriptModule/__init__.py", "r") as fh:
+    version = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', fh.read(), re.M).group(1)
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name='dScriptModule',
-    version=dScriptModule.__version__,
+    version=version,
     url='https://github.com/mk-maddin/dScriptModule',
     author='Martin Kraemer',
     author_email='mk.maddin@gmail.com',

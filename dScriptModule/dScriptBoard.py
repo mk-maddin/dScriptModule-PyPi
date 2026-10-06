@@ -12,6 +12,7 @@ from .dScriptObject import *
 import asyncio
 import struct
 import socket
+import threading
 from Crypto import Random
 from Crypto.Cipher import AES
 
@@ -41,12 +42,16 @@ class dScriptBoard(dScriptObject):
 
     _EventHandlers = { 'status':[], 'config':[], 'light':[], 'shutter':[], 'socket':[], 'motion':[], 'button':[] }
     __loop = None
+    __async_lock = None
+    __sync_lock = None
     
     '''Initialize the dScriptBoard element with at least its IP and port to be able to connect later'''
     def __init__(self, TCP_IP, TCP_PORT=17123, PROTOCOL='binary') -> None:
         _LOGGER.debug("dScriptBoard - %s:%s: __init__", TCP_IP, TCP_PORT)
         self.IP = TCP_IP
         self.Port = TCP_PORT
+        self.__async_lock = None # created on first use within the running event loop
+        self.__sync_lock = threading.Lock()
         self.SetProtocol(PROTOCOL)
         self.GetHostName()
 
@@ -80,7 +85,7 @@ class dScriptBoard(dScriptObject):
             if self._Protocol == self._Protocols[4] and self._IsInList(msg[0], self._AESNonceCommands):    #BinaryAES and command with NONCE
                 msg = await self._async_AESEncrypt(msg)
                 data = await self.__async_Send(msg,16) #BinaryAES commands always return 16 bytes
-                data = await self._async_AESEncrypt(data,self._GetKeyByValue(command,self._DecimalCommands))
+                data = await self._async_AESDecrypt(data,self._GetKeyByValue(command,self._DecimalCommands))
                 return data[:self._BinaryReturnByteCounts[command]] # return only the number of bytes usually returend by Binary protocol
             elif self._Protocol == self._Protocols[3] or self._Protocol == self._Protocols[4]:    #Binary or BinaryAES but command without NONCE
                 return await self.__async_Send(msg,self._BinaryReturnByteCounts[command])
@@ -193,52 +198,85 @@ class dScriptBoard(dScriptObject):
     '''Send a message to the board''' 
     def __Send(self,msg,buff):
         _LOGGER.debug("dScriptBoard - %s: Send: %s | %s", self.friendlyname, msg, buff)
+        if self.__sync_lock is None:
+            self.__sync_lock = threading.Lock()
+        with self.__sync_lock: # the board firmware processes one request at a time - never send in parallel
+            s = None
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(self.ConnectionTimeout)
+                s.connect((self.IP, self.Port))
+                s.sendall(msg)
+                data = b''
+                while len(data) < buff:
+                    try:
+                        chunk = s.recv(buff - len(data))
+                    except socket.timeout:
+                        if data: break # board sent less than expected - return what we got
+                        raise
+                    if not chunk: break
+                    data = data + chunk
+                return data
+            except Exception as e: 
+                _LOGGER.error("dScriptBoard - %s: Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
+                return False
+            finally:
+                if s is not None:
+                    try: s.close()
+                    except Exception: pass
+
+    '''Close an asyncio stream writer without raising'''
+    async def __async_CloseWriter(self,writer):
+        if writer is None:
+            return
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(self.ConnectionTimeout)
-            s.connect((self.IP, self.Port))
-        except Exception as e: 
-            _LOGGER.error("dScriptBoard - %s: Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-            return False
-        try:
-            s.send(msg)
-            data = s.recv(buff)
-        except Exception as e: 
-            _LOGGER.error("dScriptBoard - %s: Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-            s.close()
-            return False
-        s.close()
-        return data
+            writer.close()
+            await asyncio.wait_for(writer.wait_closed(), timeout=self.ConnectionTimeout)
+        except Exception:
+            pass
 
     '''Send a message to the board''' 
     async def __async_Send(self,msg,buff,retry=False):
         _LOGGER.debug("dScriptBoard - %s: async_Send: %s | %s", self.friendlyname, msg, buff)
+        if self.__async_lock is None:
+            self.__async_lock = asyncio.Lock()
+        async with self.__async_lock: # the board firmware processes one request at a time - never send in parallel
+            data = await self.__async_SendUnlocked(msg,buff)
+        if data is None and not retry:
+            _LOGGER.debug("dScriptBoard - %s: async_Send retry sending: %s | %s", self.friendlyname, msg, buff)
+            return await self.__async_Send(msg,buff,True)
+        elif data is None:
+            _LOGGER.error("dScriptBoard - %s: async_Send failed with retry: %s | %s", self.friendlyname, msg, buff)
+            return False
+        return data
+
+    '''Send a message to the board without locking - returns None on timeout to allow a retry'''
+    async def __async_SendUnlocked(self,msg,buff):
+        writer = None
         try:
-            writer = None
             if self.__loop is not None:
                 _LOGGER.warning("dScriptBoard - %s: async_Send loop parameter is no longer forwarded as of python 3.10", self.friendlyname )
-            #reader, writer = await asyncio.open_connection(self.IP, self.Port, loop=self.__loop)
-            reader, writer = await asyncio.open_connection(self.IP, self.Port)
+            reader, writer = await asyncio.wait_for(asyncio.open_connection(self.IP, self.Port), timeout=self.ConnectionTimeout)
             writer.write(msg)
-            data = await reader.read(buff)
-            writer.close()
+            await asyncio.wait_for(writer.drain(), timeout=self.ConnectionTimeout)
+            data = b''
+            while len(data) < buff:
+                try:
+                    chunk = await asyncio.wait_for(reader.read(buff - len(data)), timeout=self.ConnectionTimeout)
+                except asyncio.TimeoutError:
+                    if data: break # board sent less than expected - return what we got
+                    raise
+                if not chunk: break
+                data = data + chunk
             return data
-        except TimeoutError as e:
-            if not retry:
-                _LOGGER.debug("dScriptBoard - %s: async_Send retry sending: %s | %s", self.friendlyname, msg, buff)
-                if writer:
-                    writer.close()
-                await self.__async_Send(msg,buff,True)
-            else:
-                _LOGGER.error("dScriptBoard - %s: async_Send failed with retry: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-                if not write is None:
-                    writer.close()
-                return False
+        except asyncio.TimeoutError as e:
+            _LOGGER.debug("dScriptBoard - %s: async_Send timeout: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
+            return None
         except Exception as e: 
             _LOGGER.error("dScriptBoard - %s: async_Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
-            if not write is None:
-                writer.close()
             return False
+        finally:
+            await self.__async_CloseWriter(writer)
         
     '''Check if identifier parameter is valid'''
     def __CheckIdentifier(self,identifier,idtype) -> bool:
@@ -304,7 +342,7 @@ class dScriptBoard(dScriptObject):
     '''Initialize the board and write its results as attributes'''
     async def async_InitBoard(self) -> None:
         _LOGGER.debug("dScriptBoard - %s: async_InitBoard", self.friendlyname)
-        self.GetHostName()
+        await asyncio.get_running_loop().run_in_executor(None, self.GetHostName)
         await self.async_GetStatus()
         await self.async_GetConfig()
         
@@ -320,7 +358,7 @@ class dScriptBoard(dScriptObject):
             databits=self._ToDataBits(data)
 
             _LOGGER.info("dScriptBoard - %s: GetStatus: update board status information", self.friendlyname)
-            self._ModuleID=self._Modules[databytes[0]]
+            self._ModuleID=self._Modules.get(databytes[0], 'Unknown (%s)' % databytes[0])
             self._SystemFirmwareMajor=databytes[1]
             self._SystemFirmwareMinor=databytes[2]
             self._ApplicationFirmwareMajor=databytes[3]
@@ -343,7 +381,7 @@ class dScriptBoard(dScriptObject):
             databits=self._ToDataBits(data)
 
             _LOGGER.info("dScriptBoard - %s: async_GetStatus: update board status information", self.friendlyname)
-            self._ModuleID=self._Modules[databytes[0]]
+            self._ModuleID=self._Modules.get(databytes[0], 'Unknown (%s)' % databytes[0])
             self._SystemFirmwareMajor=databytes[1]
             self._SystemFirmwareMinor=databytes[2]
             self._ApplicationFirmwareMajor=databytes[3]

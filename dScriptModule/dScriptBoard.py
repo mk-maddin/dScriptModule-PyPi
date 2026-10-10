@@ -216,6 +216,9 @@ class dScriptBoard(dScriptObject):
                         raise
                     if not chunk: break
                     data = data + chunk
+                if len(data) == 0: # board closed the connection without any reply
+                    _LOGGER.error("dScriptBoard - %s: Send failed: empty reply from board", self.friendlyname)
+                    return False
                 return data
             except Exception as e: 
                 _LOGGER.error("dScriptBoard - %s: Send failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
@@ -268,6 +271,10 @@ class dScriptBoard(dScriptObject):
                     raise
                 if not chunk: break
                 data = data + chunk
+            if len(data) == 0: # board closed the connection without any reply - give it a moment and retry once
+                _LOGGER.debug("dScriptBoard - %s: async_Send empty reply from board", self.friendlyname)
+                await asyncio.sleep(0.3)
+                return None
             return data
         except asyncio.TimeoutError as e:
             _LOGGER.debug("dScriptBoard - %s: async_Send timeout: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)

@@ -137,3 +137,31 @@ def test_unknown_module_id(fake_board_cls):
     b = run(main())
     assert b._ModuleID == 'Unknown (99)'
     assert b._SystemFirmwareMajor == 1
+
+
+def test_empty_reply_is_retried_once_then_fails(fake_board_cls):
+    async def main():
+        fb = await fake_board_cls(empty=True).start()
+        b = make_board(fb.port)
+        t = time.monotonic()
+        r = await b.async_GetStatus()
+        took = time.monotonic() - t
+        await fb.stop()
+        return b, r, fb, took
+    b, r, fb, took = run(main())
+    assert r is None
+    assert b._SystemFirmwareMajor == 0, "an empty reply must not be parsed as status"
+    assert len(fb.requests) == 2, "exactly one retry"
+    assert took < 3
+
+
+def test_empty_reply_sync(fake_board_cls):
+    async def main():
+        fb = await fake_board_cls(empty=True).start()
+        b = make_board(fb.port)
+        await asyncio.get_running_loop().run_in_executor(None, b.GetStatus)
+        await fb.stop()
+        return b, fb
+    b, fb = run(main())
+    assert b._SystemFirmwareMajor == 0
+    assert len(fb.requests) == 1

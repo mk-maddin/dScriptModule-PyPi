@@ -14,9 +14,10 @@ CONFIG = bytes([0, 1, 2, 0xab, 4, 5, 24, 4, 3, 12, 1, 2])  # MAC, 24 relays, 4 l
 class FakeBoard:
     """Minimal asyncio TCP server answering like the dScriptRoomControl firmware (one request per connection)."""
 
-    def __init__(self, fragment=False, silent=False, delay=0.02):
+    def __init__(self, fragment=False, silent=False, delay=0.02, empty=False):
         self.fragment = fragment
         self.silent = silent
+        self.empty = empty  # close the connection without any reply
         self.delay = delay
         self.requests = []
         self.active = 0
@@ -43,6 +44,8 @@ class FakeBoard:
             self.requests.append(bytes(data))
             if self.silent:
                 await asyncio.sleep(30)
+                return
+            if self.empty:
                 return
             await asyncio.sleep(self.delay)
             resp = self.response(data[0], data[1] if len(data) > 1 else 0)

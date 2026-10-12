@@ -8,7 +8,6 @@
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-from bitstring import BitArray
 from .dScriptEvent import *
 
 class dScriptObject(object):
@@ -79,10 +78,17 @@ class dScriptObject(object):
         _LOGGER.debug("dScriptBoard: received databytes: %s", databytes)
         return databytes
 
+    '''Read a signed 16 bit big endian value (two's complement) from two bytes'''
+    def _ToInt16(self, high, low):
+        value = (int(high) << 8) | int(low)
+        if value >= 0x8000:
+            value -= 0x10000
+        return value
+
     '''Translate received set of data into bit array'''
     def _ToDataBits(self,data):
         #_LOGGER.debug("dScriptObject: _ToDataBits: %s",data)
-        databits = (BitArray(bytes=data,offset=1)).bin
+        databits = ''.join(format(b, '08b') for b in bytes(data))[1:] # bit string without the first bit (former bitstring BitArray(bytes=data, offset=1).bin)
         _LOGGER.debug("dScriptObject: received databits: %s", databits)
         return databits
 

@@ -362,7 +362,6 @@ class dScriptBoard(dScriptObject):
                 _LOGGER.debug("dScriptBoard - %s: GetStatus: no informational result: %s", self.friendlyname, data)
                 return None
             databytes=self._ToDataBytes(data)
-            databits=self._ToDataBits(data)
 
             _LOGGER.info("dScriptBoard - %s: GetStatus: update board status information", self.friendlyname)
             self._ModuleID=self._Modules.get(databytes[0], 'Unknown (%s)' % databytes[0])
@@ -371,7 +370,7 @@ class dScriptBoard(dScriptObject):
             self._ApplicationFirmwareMajor=databytes[3]
             self._ApplicationFirmwareMinor=databytes[4]
             self._Volts=float(databytes[5])/10.00
-            self._Temperature=float(int(databits[(6*8):(8*8)],2)/10.00)
+            self._Temperature=float(self._ToInt16(databytes[6], databytes[7])/10.00) # temperature x10 as signed 16 bit
             self._throwEvent(self._HostName, 'status')
         except Exception as e: 
             _LOGGER.error("dScriptBoard - %s: GetStatus failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)
@@ -385,7 +384,6 @@ class dScriptBoard(dScriptObject):
                 _LOGGER.debug("dScriptBoard - %s: async_GetStatus: no informational result: %s", self.friendlyname, data)
                 return None 
             databytes=self._ToDataBytes(data)
-            databits=self._ToDataBits(data)
 
             _LOGGER.info("dScriptBoard - %s: async_GetStatus: update board status information", self.friendlyname)
             self._ModuleID=self._Modules.get(databytes[0], 'Unknown (%s)' % databytes[0])
@@ -394,7 +392,7 @@ class dScriptBoard(dScriptObject):
             self._ApplicationFirmwareMajor=databytes[3]
             self._ApplicationFirmwareMinor=databytes[4]
             self._Volts=float(databytes[5])/10.00
-            self._Temperature=float(int(databits[(6*8):(8*8)],2)/10.00)
+            self._Temperature=float(self._ToInt16(databytes[6], databytes[7])/10.00) # temperature x10 as signed 16 bit
             self._throwEvent(self._HostName, 'status')
         except Exception as e: 
             _LOGGER.error("dScriptBoard - %s: async_GetStatus failed: %s (%s.%s)", self.friendlyname, str(e), e.__class__.__module__, type(e).__name__)

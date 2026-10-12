@@ -165,3 +165,24 @@ def test_empty_reply_sync(fake_board_cls):
     b, fb = run(main())
     assert b._SystemFirmwareMajor == 0
     assert len(fb.requests) == 1
+
+
+def test_negative_temperature(fake_board_cls):
+    class Cold(fake_board_cls):
+        def response(self, cmd, arg):
+            return bytes([34, 4, 13, 3, 9, 120, 0xFF, 0xCB]) if cmd == 0x30 else super().response(cmd, arg)  # -5.3 C
+    async def main():
+        fb = await Cold().start()
+        b = make_board(fb.port)
+        await b.async_GetStatus()
+        await fb.stop()
+        return b
+    assert run(main())._Temperature == -5.3
+
+
+def test_no_bitstring_dependency():
+    import sys
+    import dScriptModule
+    assert "bitstring" not in sys.modules, "bitstring 5.0 removed BitArray(bytes=...) - the library must not need it"
+    b = dScriptBoard("127.0.0.1", 1)
+    assert b._ToDataBits(bytes([0b10110000, 0b00000001])) == "011000000000001"
